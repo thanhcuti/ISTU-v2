@@ -7,8 +7,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
     <style>
+        /* Hide elements until Alpine.js initializes */
         [x-cloak] { display: none !important; }
         body { background: #f8fafc; }
+        /* Style for 3D flip effect */
+        .rotate-y-180 { transform: rotateY(180deg); }
+        [x-show="card.flipped"] { backface-visibility: hidden; }
+        .back-content { transform: rotateY(180deg); }
     </style>
 </head>
 <body x-data="istuApp('vi')" :lang="lang">
@@ -124,10 +129,10 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <template x-for="(card, index) in currentDeck.cards" :key="index">
-                        <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 transform transition-transform duration-500 ease-in-out cursor-pointer" 
+                        <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 transform transition-transform duration-500 ease-in-out cursor-pointer relative" 
                             :class="{ 'rotate-y-180': card.flipped }"
                             @click="card.flipped = !card.flipped"
-                            :style="{ transform: card.flipped ? 'rotateY(180deg)' : 'rotateY(0deg)', 'backface-visibility': 'hidden' }">
+                            :style="{ 'backface-visibility': 'hidden' }">
                             
                             <div class="absolute w-full h-full inset-0 p-6 flex flex-col justify-center items-center text-center">
                                 <div x-show="!card.flipped" class="front-content">
@@ -150,9 +155,11 @@
     <script>
         const STORAGE_KEY = 'istu_decks';
         
+        // IMPORTANT: REPLACE THIS WITH ACTUAL VERCEL DEPLOYMENT URL
+        const PROXY_API_URL = "https://istu-api-proxy-c3kkj5uua-thanhcutis-projects.vercel.app/api/generate";
+
         const translations = {
             en: {
-                // ... English translations ...
                 btn_new: 'Create New Deck',
                 header_dashboard: 'Your Flashcard Decks',
                 header_create: 'Generate New Flashcards with AI',
@@ -204,6 +211,40 @@
             }
         };
 
+        /**
+         * The core function that makes the API call to the secured Vercel Proxy function.
+         * This function is now defined in the global scope so Alpine can call it.
+         * @param {string} context - The user input (topic or file content).
+         * @param {string} key - Placeholder, no longer used.
+         * @param {boolean} isFile - True if context is file content.
+         * @param {string} lang - Target language ('en' or 'vi').
+         * @returns {Promise<Array>} A promise that resolves to an array of flashcard objects.
+         */
+        window.generateFromGemini = async (context, key, isFile, lang) => {
+            const response = await fetch(PROXY_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                // Send necessary parameters to the secured server endpoint
+                body: JSON.stringify({ 
+                    context: context, 
+                    isFile: isFile, 
+                    lang: lang 
+                }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                // Throw an error with the response from the server for debugging
+                throw new Error(`API Proxy Call Failed: ${errorText}`);
+            }
+
+            // The server is responsible for parsing JSON before returning
+            return await response.json(); 
+        };
+
+        // Alpine.js Application Logic
         Alpine.data('istuApp', (initialLang) => ({
             lang: localStorage.getItem('istu_lang') || initialLang,
             view: 'dashboard', // dashboard | create | deckDetail
@@ -232,7 +273,9 @@
             },
 
             formatDate(timestamp) {
-                return new Date(timestamp).toLocaleDateString(this.lang, { year: 'numeric', month: 'short', day: 'numeric' });
+                // Using 'en-US' locale as fallback for general date formatting
+                const locale = this.lang === 'vi' ? 'vi-VN' : 'en-US'; 
+                return new Date(timestamp).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
             },
 
             async handleGenerate() {
@@ -244,11 +287,11 @@
                 }
 
                 this.loading = true;
+                // Auto-generate title if missing
                 this.deckTitle = this.deckTitle.trim() || (isFile ? context.substring(0, 50) + '...' : context);
 
                 try {
-                    // Call the new window.generateFromGemini function which now hits the Vercel Proxy
-                    // Note: 'null' is passed for API Key as it is secured on the server.
+                    // Call the secured window.generateFromGemini function
                     const cards = await window.generateFromGemini(context, null, isFile, this.lang);
 
                     const newDeck = {
@@ -256,12 +299,14 @@
                         title: this.deckTitle,
                         context: context,
                         createdAt: Date.now(),
+                        // Add initial card state (flipped: false)
                         cards: cards.map(card => ({ ...card, flipped: false, mastery: 0, nextReview: Date.now() }))
                     };
 
                     this.decks.unshift(newDeck);
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.decks));
                     
+                    // Clear inputs and navigate to the new deck
                     this.topicInput = '';
                     this.fileInput = '';
                     this.deckTitle = '';
@@ -289,43 +334,5 @@
         }));
     </script>
 
-    <script>
-        // *** IMPORTANT: REPLACE THIS WITH YOUR ACTUAL VERCEL DEPLOYMENT URL ***
-        const PROXY_API_URL = "https://istu-api-proxy-c3kkj5uua-thanhcutis-projects.vercel.app/api/generate";
-
-        /**
-         * Handles the API call to the secured Vercel Proxy function.
-         * @param {string} context - The user input (topic or file content).
-         * @param {string} key - Placeholder, no longer used.
-         * @param {boolean} isFile - True if context is file content.
-         * @param {string} lang - Target language ('en' or 'vi').
-         * @returns {Promise<Array>} A promise that resolves to an array of flashcard objects.
-         */
-        window.generateFromGemini = async (context, key, isFile, lang) => {
-            // Send necessary parameters to the secured server endpoint
-            const response = await fetch(PROXY_API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    context: context, 
-                    isFile: isFile, 
-                    lang: lang 
-                }),
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                // Throw an error with the response from the server for debugging
-                throw new Error(`API Proxy Call Failed: ${errorText}`);
-            }
-
-            // The server is responsible for parsing JSON before returning
-            return await response.json(); 
-        };
-    </script>
-
 </body>
 </html>
-
