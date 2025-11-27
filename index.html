@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ISTU Flashcard Generator - AI Powered Spaced Repetition</title>
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         [x-cloak] { display: none !important; }
@@ -35,11 +34,158 @@
         .back-content { transform: rotateY(180deg); }
         #app-content { min-height: calc(100vh - 80px); }
     </style>
-
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
 </head>
 
-<body x-data="istuApp('vi')" :lang="lang"> 
+<body x-data="{
+    lang: localStorage.getItem('istu_lang') || 'vi',
+    view: 'dashboard',
+    loading: false,
+    decks: JSON.parse(localStorage.getItem('istu_decks') || '[]'),
+    topicInput: '',
+    fileInput: '',
+    deckTitle: '',
+    createMode: 'topic',
+    currentDeck: null,
+    
+    // PROXY URL
+    PROXY_API_URL: 'https://istu-api-proxy-c3kkj5uua-thanhcutis-projects.vercel.app/api/generate',
+
+    translations: {
+        en: {
+            btn_new: 'Create New Deck',
+            header_dashboard: 'Your Flashcard Decks',
+            header_create: 'Generate New Flashcards with AI',
+            tab_topic: 'From Topic',
+            tab_file: 'From Text/File',
+            label_topic: 'Topic/Concept',
+            topic_placeholder: 'E.g., Spaced Repetition Algorithm',
+            label_file: 'Paste Text Content',
+            file_placeholder: 'Paste your notes, article, or lesson text here (max ~25,000 chars)',
+            label_deck_title: 'Deck Title',
+            title_placeholder: 'E.g., IT Midterm Review',
+            btn_generate: 'Generate Flashcards',
+            btn_loading: 'Generating...',
+            btn_back: 'Back to Decks',
+            label_cards: 'Cards',
+            label_source: 'Source',
+            label_front: 'Front (Question)',
+            label_back: 'Back (Answer)',
+            empty_title: 'No Flashcard Decks Yet',
+            empty_subtitle: 'Get started by creating a new deck from a topic or text.',
+            error_context: 'Please provide a topic or text to generate flashcards.',
+            error_api: 'API Proxy Error: Could not reach the server or API key is invalid on server.',
+            title: 'ISTU Flashcard Generator'
+        },
+        vi: {
+            btn_new: 'Tạo Bộ Thẻ Mới',
+            header_dashboard: 'Các Bộ Thẻ Của Bạn',
+            header_create: 'Tạo Thẻ Ghi Nhớ Bằng AI',
+            tab_topic: 'Từ Chủ Đề',
+            tab_file: 'Từ Văn Bản/File',
+            label_topic: 'Chủ Đề/Khái Niệm',
+            topic_placeholder: 'Ví dụ: Thuật toán Lặp lại Ngắt quãng (Spaced Repetition)',
+            label_file: 'Dán Nội Dung Văn Bản',
+            file_placeholder: 'Dán ghi chú, bài báo, hoặc nội dung bài học vào đây (tối đa ~25,000 ký tự)',
+            label_deck_title: 'Tiêu Đề Bộ Thẻ',
+            title_placeholder: 'Ví dụ: Ôn tập Giữa kỳ Tin học',
+            btn_generate: 'Tạo Thẻ Ghi Nhớ',
+            btn_loading: 'Đang tạo...',
+            btn_back: 'Quay lại',
+            label_cards: 'Thẻ',
+            label_source: 'Nguồn',
+            label_front: 'Mặt trước (Câu hỏi)',
+            label_back: 'Mặt sau (Trả lời)',
+            empty_title: 'Chưa có Bộ Thẻ nào',
+            empty_subtitle: 'Hãy bắt đầu bằng cách tạo một bộ thẻ mới từ chủ đề hoặc văn bản.',
+            error_context: 'Vui lòng cung cấp chủ đề hoặc văn bản để tạo thẻ.',
+            error_api: 'Lỗi Proxy API: Không thể kết nối đến máy chủ hoặc Key API trên máy chủ không hợp lệ.',
+            title: 'ISTU - Công cụ Tạo Thẻ Ghi Nhớ'
+        }
+    },
+
+    init() {
+        this.updateTitle();
+        this.$watch('lang', (newLang) => {
+            localStorage.setItem('istu_lang', newLang);
+            this.updateTitle();
+        });
+    },
+
+    t(key) {
+        return this.translations[this.lang][key] || this.translations['en'][key];
+    },
+
+    updateTitle() {
+        document.title = this.t('title');
+    },
+
+    formatDate(timestamp) {
+        const locale = this.lang === 'vi' ? 'vi-VN' : 'en-US'; 
+        return new Date(timestamp).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
+    },
+
+    async handleGenerate() {
+        const context = this.createMode === 'topic' ? this.topicInput : this.fileInput;
+        const isFile = this.createMode === 'file';
+
+        if (!context.trim()) {
+            return alert(this.t('error_context'));
+        }
+
+        this.loading = true;
+        this.deckTitle = this.deckTitle.trim() || (isFile ? context.substring(0, 50) + '...' : context);
+
+        try {
+            const response = await fetch(this.PROXY_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ context: context, isFile: isFile, lang: this.lang }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`API Proxy Call Failed: ${errorText}`);
+            }
+            
+            const cards = await response.json();
+
+            const newDeck = {
+                id: Date.now(),
+                title: this.deckTitle,
+                context: context,
+                createdAt: Date.now(),
+                cards: cards.map(card => ({ ...card, flipped: false, mastery: 0, nextReview: Date.now() }))
+            };
+
+            this.decks.unshift(newDeck);
+            localStorage.setItem('istu_decks', JSON.stringify(this.decks));
+            
+            this.topicInput = '';
+            this.fileInput = '';
+            this.deckTitle = '';
+            this.openDeck(newDeck);
+
+        } catch (error) {
+            console.error('Generation Error:', error);
+            alert(`${this.t('error_api')}\nDetails: ${error.message}`);
+        } finally {
+            this.loading = false;
+        }
+    },
+
+    openDeck(deck) {
+        this.currentDeck = deck;
+        this.view = 'deckDetail';
+    },
+
+    deleteDeck(id) {
+        if (confirm(this.lang === 'en' ? 'Are you sure you want to delete this deck?' : 'Bạn có chắc chắn muốn xóa bộ thẻ này không?')) {
+            this.decks = this.decks.filter(deck => deck.id !== id);
+            localStorage.setItem('istu_decks', JSON.stringify(this.decks));
+        }
+    }
+}" :lang="lang">
 
     <nav class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
@@ -145,191 +291,33 @@
                 <span x-text="t('btn_back')"></span>
             </button>
 
-            <div x-show="currentDeck">
-                <h1 class="text-3xl font-extrabold text-gray-900 mb-2" x-text="currentDeck.title"></h1>
-                <p class="text-base text-gray-500 mb-6" x-text="t('label_source') + ': ' + currentDeck.context"></p>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 card-container">
-                    <template x-for="(card, index) in currentDeck.cards" :key="index">
-                        <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 transition-shadow duration-500 ease-in-out cursor-pointer relative h-64" 
-                            @click="card.flipped = !card.flipped">
-                            
-                            <div class="card-inner" :class="{ 'rotate-y-180': card.flipped }">
-                                <div class="front-content" x-show="!card.flipped">
-                                    <p class="text-sm font-bold text-indigo-600 mb-2" x-text="t('label_front')"></p>
-                                    <p class="text-xl font-bold text-gray-900" x-text="card.front"></p>
-                                </div>
+            <template x-if="currentDeck">
+                <div>
+                    <h1 class="text-3xl font-extrabold text-gray-900 mb-2" x-text="currentDeck.title"></h1>
+                    <p class="text-base text-gray-500 mb-6" x-text="t('label_source') + ': ' + currentDeck.context"></p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 card-container">
+                        <template x-for="(card, index) in currentDeck.cards" :key="index">
+                            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 transition-shadow duration-500 ease-in-out cursor-pointer relative h-64" 
+                                @click="card.flipped = !card.flipped">
                                 
-                                <div class="back-content" x-show="card.flipped">
-                                    <p class="text-sm font-bold text-green-600 mb-2" x-text="t('label_back')"></p>
-                                    <p class="text-xl text-gray-900" x-text="card.back"></p>
+                                <div class="card-inner" :class="{ 'rotate-y-180': card.flipped }">
+                                    <div class="front-content" x-show="!card.flipped">
+                                        <p class="text-sm font-bold text-indigo-600 mb-2" x-text="t('label_front')"></p>
+                                        <p class="text-xl font-bold text-gray-900" x-text="card.front"></p>
+                                    </div>
+                                    
+                                    <div class="back-content" x-show="card.flipped">
+                                        <p class="text-sm font-bold text-green-600 mb-2" x-text="t('label_back')"></p>
+                                        <p class="text-xl text-gray-900" x-text="card.back"></p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </template>
+                        </template>
+                    </div>
                 </div>
-            </div>
+            </template>
         </div>
     </div>
-    
-    <script>
-        // Alpine:init listener đảm bảo code chạy ĐÚNG THỜI ĐIỂM sau khi thư viện tải xong
-        document.addEventListener('alpine:init', () => {
-            const STORAGE_KEY = 'istu_decks';
-            
-            // PROXY API URL (Vẫn giữ nguyên của bạn)
-            const PROXY_API_URL = "https://istu-api-proxy-c3kkj5uua-thanhcutis-projects.vercel.app/api/generate";
-
-            const translations = {
-                en: {
-                    btn_new: 'Create New Deck',
-                    header_dashboard: 'Your Flashcard Decks',
-                    header_create: 'Generate New Flashcards with AI',
-                    tab_topic: 'From Topic',
-                    tab_file: 'From Text/File',
-                    label_topic: 'Topic/Concept',
-                    topic_placeholder: 'E.g., Spaced Repetition Algorithm',
-                    label_file: 'Paste Text Content',
-                    file_placeholder: 'Paste your notes, article, or lesson text here (max ~25,000 chars)',
-                    label_deck_title: 'Deck Title',
-                    title_placeholder: 'E.g., IT Midterm Review',
-                    btn_generate: 'Generate Flashcards',
-                    btn_loading: 'Generating...',
-                    btn_back: 'Back to Decks',
-                    label_cards: 'Cards',
-                    label_source: 'Source',
-                    label_front: 'Front (Question)',
-                    label_back: 'Back (Answer)',
-                    empty_title: 'No Flashcard Decks Yet',
-                    empty_subtitle: 'Get started by creating a new deck from a topic or text.',
-                    error_context: 'Please provide a topic or text to generate flashcards.',
-                    error_api: 'API Proxy Error: Could not reach the server or API key is invalid on server.',
-                    title: 'ISTU Flashcard Generator'
-                },
-                vi: {
-                    btn_new: 'Tạo Bộ Thẻ Mới',
-                    header_dashboard: 'Các Bộ Thẻ Của Bạn',
-                    header_create: 'Tạo Thẻ Ghi Nhớ Bằng AI',
-                    tab_topic: 'Từ Chủ Đề',
-                    tab_file: 'Từ Văn Bản/File',
-                    label_topic: 'Chủ Đề/Khái Niệm',
-                    topic_placeholder: 'Ví dụ: Thuật toán Lặp lại Ngắt quãng (Spaced Repetition)',
-                    label_file: 'Dán Nội Dung Văn Bản',
-                    file_placeholder: 'Dán ghi chú, bài báo, hoặc nội dung bài học vào đây (tối đa ~25,000 ký tự)',
-                    label_deck_title: 'Tiêu Đề Bộ Thẻ',
-                    title_placeholder: 'Ví dụ: Ôn tập Giữa kỳ Tin học',
-                    btn_generate: 'Tạo Thẻ Ghi Nhớ',
-                    btn_loading: 'Đang tạo...',
-                    btn_back: 'Quay lại',
-                    label_cards: 'Thẻ',
-                    label_source: 'Nguồn',
-                    label_front: 'Mặt trước (Câu hỏi)',
-                    label_back: 'Mặt sau (Trả lời)',
-                    empty_title: 'Chưa có Bộ Thẻ nào',
-                    empty_subtitle: 'Hãy bắt đầu bằng cách tạo một bộ thẻ mới từ chủ đề hoặc văn bản.',
-                    error_context: 'Vui lòng cung cấp chủ đề hoặc văn bản để tạo thẻ.',
-                    error_api: 'Lỗi Proxy API: Không thể kết nối đến máy chủ hoặc Key API trên máy chủ không hợp lệ.',
-                    title: 'ISTU - Công cụ Tạo Thẻ Ghi Nhớ'
-                }
-            };
-            
-            const generateFromGemini = async (context, key, isFile, lang) => {
-                const response = await fetch(PROXY_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ context: context, isFile: isFile, lang: lang }),
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`API Proxy Call Failed: ${errorText}`);
-                }
-                return await response.json(); 
-            };
-
-            Alpine.data('istuApp', (initialLang) => ({
-                lang: localStorage.getItem('istu_lang') || initialLang,
-                view: 'dashboard', 
-                loading: false,
-                decks: JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'),
-                topicInput: '',
-                fileInput: '',
-                deckTitle: '',
-                createMode: 'topic', 
-                currentDeck: null,
-
-                init() {
-                    this.updateTitle();
-                    this.$watch('lang', (newLang) => {
-                        localStorage.setItem('istu_lang', newLang);
-                        this.updateTitle();
-                    });
-                },
-                
-                t(key) {
-                    return translations[this.lang][key] || translations['en'][key];
-                },
-
-                updateTitle() {
-                    document.title = this.t('title');
-                },
-
-                formatDate(timestamp) {
-                    const locale = this.lang === 'vi' ? 'vi-VN' : 'en-US'; 
-                    return new Date(timestamp).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
-                },
-
-                async handleGenerate() {
-                    const context = this.createMode === 'topic' ? this.topicInput : this.fileInput;
-                    const isFile = this.createMode === 'file';
-
-                    if (!context.trim()) {
-                        return alert(this.t('error_context'));
-                    }
-
-                    this.loading = true;
-                    this.deckTitle = this.deckTitle.trim() || (isFile ? context.substring(0, 50) + '...' : context);
-
-                    try {
-                        const cards = await generateFromGemini(context, null, isFile, this.lang);
-
-                        const newDeck = {
-                            id: Date.now(),
-                            title: this.deckTitle,
-                            context: context,
-                            createdAt: Date.now(),
-                            cards: cards.map(card => ({ ...card, flipped: false, mastery: 0, nextReview: Date.now() }))
-                        };
-
-                        this.decks.unshift(newDeck);
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.decks));
-                        
-                        this.topicInput = '';
-                        this.fileInput = '';
-                        this.deckTitle = '';
-                        this.openDeck(newDeck);
-
-                    } catch (error) {
-                        console.error("Generation Error:", error);
-                        alert(`${this.t('error_api')}\nDetails: ${error.message}`);
-                    } finally {
-                        this.loading = false;
-                    }
-                },
-                
-                openDeck(deck) {
-                    this.currentDeck = deck;
-                    this.view = 'deckDetail';
-                },
-
-                deleteDeck(id) {
-                    if (confirm(this.lang === 'en' ? "Are you sure you want to delete this deck?" : "Bạn có chắc chắn muốn xóa bộ thẻ này không?")) {
-                        this.decks = this.decks.filter(deck => deck.id !== id);
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.decks));
-                    }
-                }
-            }));
-        });
-    </script>
 </body>
 </html>
