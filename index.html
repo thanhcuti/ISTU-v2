@@ -48,7 +48,7 @@
     createMode: 'topic',
     currentDeck: null,
     
-    // ĐÃ CẬP NHẬT URL PROXY MỚI NHẤT CỦA BẠN
+    //  
     PROXY_API_URL: 'https://istu-api-proxy-c4r83q6nf-thanhcutis-projects.vercel.app/api/generate',
 
     translations: {
@@ -126,7 +126,7 @@
     },
 
     // =========================================================
-    // HÀM SỬA LỖI handleGenerate() - ĐÃ TĂNG CƯỜNG XỬ LÝ LỖI
+    // HÀM SỬA LỖI QUAN TRỌNG: handleGenerate() (Logic mới nhất)
     // =========================================================
     async handleGenerate() {
         const context = this.createMode === 'topic' ? this.topicInput : this.fileInput;
@@ -151,14 +151,14 @@
             try {
                 data = await response.json(); 
             } catch (jsonError) {
-                // Nếu không phải JSON, đọc nó dưới dạng TEXT và ném lỗi
+                // Nếu không phải JSON (VD: lỗi 404/500 trả về Text), đọc nó dưới dạng TEXT và ném lỗi
                 const errorText = await response.text();
                 throw new Error(errorText || 'API did not return a valid response format.'); 
             }
             
-            // BƯỚC 2: Kiểm tra status code (Nếu Backend trả về lỗi JSON 4xx/5xx)
+            // BƯỚC 2: Kiểm tra status code
             if (!response.ok) {
-                // data.error sẽ chứa thông báo lỗi chuẩn từ Backend (ví dụ: 'Server API Key is missing')
+                // Ném lỗi kèm thông báo lỗi từ server (data.error)
                 throw new Error(data.error || `Server responded with status ${response.status}`); 
             }
             
