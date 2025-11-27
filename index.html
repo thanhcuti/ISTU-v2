@@ -4,14 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ISTU Flashcard Generator - AI Powered Spaced Repetition</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
     <style>
-        /* CSS CŨ ĐÃ BỊ XÓA VÌ SAI CÚ PHÁP, CHỈ GIỮ LẠI CÁI NÀY */
         [x-cloak] { display: none !important; }
         body { background: #f8fafc; }
-
-        /* BỔ SUNG CÁC STYLE CHO CHỨC NĂNG LẬT THẺ MỚI */
         .card-container { perspective: 1000px; }
         .card-inner {
             transform-style: preserve-3d;
@@ -36,8 +33,12 @@
             left: 0;
         }
         .back-content { transform: rotateY(180deg); }
+        #app-content { min-height: calc(100vh - 80px); }
     </style>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
 </head>
+
 <body x-data="istuApp('vi')" :lang="lang"> 
 
     <nav class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
@@ -58,7 +59,7 @@
         </div>
     </nav>
     
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div id="app-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         <div x-show="view === 'dashboard'" x-cloak>
             <h1 class="text-3xl font-extrabold text-gray-900 mb-6" x-text="t('header_dashboard')"></h1>
@@ -172,14 +173,14 @@
     </div>
     
     <script>
+        // Alpine:init listener đảm bảo code chạy ĐÚNG THỜI ĐIỂM sau khi thư viện tải xong
         document.addEventListener('alpine:init', () => {
             const STORAGE_KEY = 'istu_decks';
             
-            // Dùng chính xác URL Vercel Proxy của bạn
+            // PROXY API URL (Vẫn giữ nguyên của bạn)
             const PROXY_API_URL = "https://istu-api-proxy-c3kkj5uua-thanhcutis-projects.vercel.app/api/generate";
 
             const translations = {
-                // ... (Các bản dịch)
                 en: {
                     btn_new: 'Create New Deck',
                     header_dashboard: 'Your Flashcard Decks',
@@ -232,7 +233,6 @@
                 }
             };
             
-            // Định nghĩa hàm API ngay trong thẻ script
             const generateFromGemini = async (context, key, isFile, lang) => {
                 const response = await fetch(PROXY_API_URL, {
                     method: 'POST',
@@ -291,7 +291,7 @@
                     this.deckTitle = this.deckTitle.trim() || (isFile ? context.substring(0, 50) + '...' : context);
 
                     try {
-                        const cards = await generateFromGemini(context, null, isFile, this.lang); // Dùng hàm cục bộ
+                        const cards = await generateFromGemini(context, null, isFile, this.lang);
 
                         const newDeck = {
                             id: Date.now(),
