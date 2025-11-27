@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ISTU Flashcard Generator - AI Powered Spaced Repetition</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
     <style>
         [x-cloak] { display: none !important; }
         body { background: #f8fafc; }
@@ -34,7 +35,6 @@
         .back-content { transform: rotateY(180deg); }
         #app-content { min-height: calc(100vh - 80px); }
     </style>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
 </head>
 
 <body x-data="{
@@ -48,8 +48,8 @@
     createMode: 'topic',
     currentDeck: null,
     
-    // PROXY URL CỦA BẠN
-    PROXY_API_URL: 'https://istu-api-proxy-c3kkj5uua-thanhcutis-projects.vercel.app/api/generate',
+    // ĐÃ CẬP NHẬT URL PROXY MỚI CỦA BẠN
+    PROXY_API_URL: 'https://istu-api-proxy-cr8dgbv33-thanhcutis-projects.vercel.app/api/generate',
 
     translations: {
         en: {
@@ -74,7 +74,7 @@
             empty_title: 'No Flashcard Decks Yet',
             empty_subtitle: 'Get started by creating a new deck from a topic or text.',
             error_context: 'Please provide a topic or text to generate flashcards.',
-            error_api: 'Lỗi Tạo Thẻ Ghi Nhớ',
+            error_api: 'Flashcard Generation Error',
             title: 'ISTU Flashcard Generator'
         },
         vi: {
@@ -146,28 +146,24 @@
                 body: JSON.stringify({ context: context, isFile: isFile, lang: this.lang }),
             });
 
-            // BƯỚC 1: Cố gắng đọc response dưới dạng JSON. 
-            // Nếu lỗi (do server trả về text), nó sẽ chuyển xuống catch nội bộ
             let data;
+            // BƯỚC 1: Cố gắng đọc response dưới dạng JSON. 
             try {
                 data = await response.json(); 
             } catch (jsonError) {
-                // Nếu không phải JSON (trường hợp lỗi của bạn: 'Unexpected token e...'), 
-                // đọc nó dưới dạng TEXT
+                // Nếu không phải JSON, đọc nó dưới dạng TEXT và ném lỗi
                 const errorText = await response.text();
-                // Ném lỗi để chuyển xuống catch ngoài cùng, mang theo thông báo lỗi từ server
-                throw new Error(errorText || 'API did not return JSON and provided no text response.'); 
+                throw new Error(errorText || 'API did not return a valid response format.'); 
             }
             
-            // BƯỚC 2: Kiểm tra status code (Nếu Backend trả về lỗi JSON 4xx/5xx)
+            // BƯỚC 2: Kiểm tra status code
             if (!response.ok) {
-                // Nếu status không phải 2xx, ném lỗi kèm thông báo lỗi từ server
-                // data.error sẽ chứa thông báo lỗi chuẩn từ Backend (ví dụ: 'Server API Key is missing')
+                // Ném lỗi kèm thông báo lỗi từ server (data.error)
                 throw new Error(data.error || `Server responded with status ${response.status}`); 
             }
             
             // BƯỚC 3: Xử lý thành công
-            const cards = data; // Nếu response.ok, data chính là mảng cards
+            const cards = data;
             
             const newDeck = {
                 id: Date.now(),
