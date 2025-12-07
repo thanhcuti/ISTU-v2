@@ -3,14 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ISTU Flashcard Generator - AI Powered Spaced Repetition</title>
+    <title>ISTU Flashcard Generator - AI Powered</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class', // Enable manual dark mode toggle
+        }
+    </script>
+    
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    
     <style>
-        /* Hide elements until Alpine.js is ready */
         [x-cloak] { display: none !important; }
-        body { background: #f8fafc; }
-        /* Card flip styles */
+        
+        /* 3D Card Flip Animation Styles */
         .card-container { perspective: 1000px; }
         .card-inner {
             transform-style: preserve-3d;
@@ -35,188 +42,52 @@
             left: 0;
         }
         .back-content { transform: rotateY(180deg); }
+        
+        /* Ensure full height layout */
         #app-content { min-height: calc(100vh - 80px); }
     </style>
 </head>
 
-<body x-data="{
-    lang: localStorage.getItem('istu_lang') || 'vi',
-    view: 'dashboard',
-    loading: false,
-    decks: JSON.parse(localStorage.getItem('istu_decks') || '[]'),
-    topicInput: '',
-    fileInput: '',
-    deckTitle: '',
-    createMode: 'topic',
-    currentDeck: null,
-    
-    // API Proxy URL
-    PROXY_API_URL: 'https://istu-api-proxy-c4r83q6nf-thanhcutis-projects.vercel.app/api/generate',
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300"
+      x-data="app()" 
+      x-init="initTheme()"
+      :class="{ 'dark': isDarkMode }">
 
-    translations: {
-        en: {
-            btn_new: 'Create New Deck',
-            header_dashboard: 'Your Flashcard Decks',
-            header_create: 'Generate New Flashcards with AI',
-            tab_topic: 'From Topic',
-            tab_file: 'From Text/File',
-            label_topic: 'Topic/Concept',
-            topic_placeholder: 'E.g., Spaced Repetition Algorithm',
-            label_file: 'Paste Text Content',
-            file_placeholder: 'Paste your notes, article, or lesson text here (max ~25,000 chars)',
-            label_deck_title: 'Deck Title',
-            title_placeholder: 'E.g., IT Midterm Review',
-            btn_generate: 'Generate Flashcards',
-            btn_loading: 'Generating...',
-            btn_back: 'Back to Decks',
-            label_cards: 'Cards',
-            label_source: 'Source',
-            label_front: 'Front (Question)',
-            label_back: 'Back (Answer)',
-            empty_title: 'No Flashcard Decks Yet',
-            empty_subtitle: 'Get started by creating a new deck from a topic or text.',
-            error_context: 'Please provide a topic or text to generate flashcards.',
-            error_api: 'Flashcard Generation Error',
-            title: 'ISTU Flashcard Generator'
-        },
-        vi: {
-            btn_new: 'Tạo Bộ Thẻ Mới',
-            header_dashboard: 'Các Bộ Thẻ Của Bạn',
-            header_create: 'Tạo Thẻ Ghi Nhớ Bằng AI',
-            tab_topic: 'Từ Chủ Đề',
-            tab_file: 'Từ Văn Bản/File',
-            label_topic: 'Chủ Đề/Khái Niệm',
-            topic_placeholder: 'Ví dụ: Thuật toán Lặp lại Ngắt quãng (Spaced Repetition)',
-            label_file: 'Dán Nội Dung Văn Bản',
-            file_placeholder: 'Dán ghi chú, bài báo, hoặc nội dung bài học vào đây (tối đa ~25,000 ký tự)',
-            label_deck_title: 'Tiêu Đề Bộ Thẻ',
-            title_placeholder: 'Ví dụ: Ôn tập Giữa kỳ Tin học',
-            btn_generate: 'Tạo Thẻ Ghi Nhớ',
-            btn_loading: 'Đang tạo...',
-            btn_back: 'Quay lại',
-            label_cards: 'Thẻ',
-            label_source: 'Nguồn',
-            label_front: 'Mặt trước (Câu hỏi)',
-            label_back: 'Mặt sau (Trả lời)',
-            empty_title: 'Chưa có Bộ Thẻ nào',
-            empty_subtitle: 'Hãy bắt đầu bằng cách tạo một bộ thẻ mới từ chủ đề hoặc văn bản.',
-            error_context: 'Vui lòng cung cấp chủ đề hoặc văn bản để tạo thẻ.',
-            error_api: 'Lỗi Tạo Thẻ Ghi Nhớ',
-            title: 'ISTU - Công cụ Tạo Thẻ Ghi Nhớ'
-        }
-    },
-
-    init() {
-        this.updateTitle();
-        this.$watch('lang', (newLang) => {
-            localStorage.setItem('istu_lang', newLang);
-            this.updateTitle();
-        });
-    },
-
-    t(key) {
-        return this.translations[this.lang][key] || this.translations['en'][key];
-    },
-
-    updateTitle() {
-        document.title = this.t('title');
-    },
-
-    formatDate(timestamp) {
-        const locale = this.lang === 'vi' ? 'vi-VN' : 'en-US'; 
-        return new Date(timestamp).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
-    },
-
-    // Core function: handleGenerate() - Newest logic for error handling
-    async handleGenerate() {
-        const context = this.createMode === 'topic' ? this.topicInput : this.fileInput;
-        const isFile = this.createMode === 'file';
-
-        if (!context.trim()) {
-            return alert(this.t('error_context'));
-        }
-
-        this.loading = true;
-        this.deckTitle = this.deckTitle.trim() || (isFile ? context.substring(0, 50) + '...' : context);
-
-        try {
-            const response = await fetch(this.PROXY_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ context: context, isFile: isFile, lang: this.lang }),
-            });
-
-            let data;
-            // STEP 1: Attempt to read response as JSON. 
-            try {
-                data = await response.json(); 
-            } catch (jsonError) {
-                // If not JSON (e.g., 404/500 returns plain text), read as text and throw error.
-                const errorText = await response.text();
-                throw new Error(errorText || 'API did not return a valid response format.'); 
-            }
-            
-            // STEP 2: Check the response status code
-            if (!response.ok) {
-                // Throw error with message from server (data.error)
-                throw new Error(data.error || `Server responded with status ${response.status}`); 
-            }
-            
-            // STEP 3: Handle successful response
-            const cards = data;
-            
-            const newDeck = {
-                id: Date.now(),
-                title: this.deckTitle,
-                context: context,
-                createdAt: Date.now(),
-                cards: cards.map(card => ({ ...card, flipped: false, mastery: 0, nextReview: Date.now() }))
-            };
-
-            this.decks.unshift(newDeck);
-            localStorage.setItem('istu_decks', JSON.stringify(this.decks));
-            
-            this.topicInput = '';
-            this.fileInput = '';
-            this.deckTitle = '';
-            this.openDeck(newDeck);
-
-        } catch (error) {
-            // FINAL CATCH: Display cleaned-up error message
-            console.error('Generation Error:', error);
-            alert(`${this.t('error_api')}\nChi tiết: ${error.message}`);
-        } finally {
-            this.loading = false;
-        }
-    },
-
-    openDeck(deck) {
-        this.currentDeck = deck;
-        this.view = 'deckDetail';
-    },
-
-    deleteDeck(id) {
-        if (confirm(this.lang === 'en' ? 'Are you sure you want to delete this deck?' : 'Bạn có chắc chắn muốn xóa bộ thẻ này không?')) {
-            this.decks = this.decks.filter(deck => deck.id !== id);
-            localStorage.setItem('istu_decks', JSON.stringify(this.decks));
-        }
-    }
-}" :lang="lang">
-
-    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+    <nav class="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-50 shadow-sm transition-colors duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <div class="font-bold text-2xl bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 tracking-tight cursor-pointer flex items-center gap-2" @click="view = 'dashboard'">
-                <span class="text-3xl">✨</span> 
-                <span>ISTU</span>
+            
+            <div class="flex items-center gap-3 cursor-pointer" @click="view = 'dashboard'">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                <span class="font-bold text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-500">ISTU</span>
             </div>
             
             <div class="flex items-center space-x-4">
-                <div class="flex items-center space-x-2 text-sm text-gray-600">
-                    <button @click="lang = 'vi'; updateTitle()" :class="lang === 'vi' ? 'font-bold text-indigo-600' : 'text-gray-500 hover:text-indigo-600'">VI</button>
-                    <span>|</span>
-                    <button @click="lang = 'en'; updateTitle()" :class="lang === 'en' ? 'font-bold text-indigo-600' : 'text-gray-500 hover:text-indigo-600'">EN</button>
+                <a href="https://forms.google.com/your-form-id" target="_blank" class="hidden md:flex text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
+                    Feedback
+                </a>
+
+                <button @click="toggleTheme()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition text-gray-600 dark:text-gray-300">
+                    <svg x-show="!isDarkMode" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <svg x-show="isDarkMode" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display: none;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 24.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                </button>
+
+                <div class="flex items-center space-x-2 text-sm font-bold">
+                    <button @click="setLang('vi')" :class="lang === 'vi' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 hover:text-gray-600'">VI</button>
+                    <span class="text-gray-300">|</span>
+                    <button @click="setLang('en')" :class="lang === 'en' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 hover:text-gray-600'">EN</button>
                 </div>
-                <button @click="view = 'create'" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-sm" x-text="t('btn_new')"></button>
+
+                <button @click="view = 'create'" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                    <span x-text="t('btn_new')"></span>
+                </button>
             </div>
         </div>
     </nav>
@@ -224,19 +95,24 @@
     <div id="app-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         <div x-show="view === 'dashboard'" x-cloak>
-            <h1 class="text-3xl font-extrabold text-gray-900 mb-6" x-text="t('header_dashboard')"></h1>
+            <div class="flex justify-between items-end mb-6">
+                <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white" x-text="t('header_dashboard')"></h1>
+            </div>
             
             <div x-show="decks.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 <template x-for="deck in decks" :key="deck.id">
-                    <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition flex flex-col justify-between cursor-pointer" @click="openDeck(deck)">
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 hover:shadow-xl transition flex flex-col justify-between cursor-pointer group" @click="openDeck(deck)">
                         <div>
-                            <p class="text-xs font-bold text-indigo-600 mb-1 uppercase" x-text="deck.cards.length + ' ' + t('label_cards')"></p>
-                            <h2 class="text-xl font-bold text-gray-800 mb-3 line-clamp-2" x-text="deck.title"></h2>
-                            <p class="text-sm text-gray-500 line-clamp-2" x-text="t('label_source') + ': ' + deck.context"></p>
+                            <div class="flex justify-between items-start">
+                                <p class="text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-1 uppercase" x-text="deck.cards.length + ' ' + t('label_cards')"></p>
+                                <span class="bg-indigo-50 dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 text-[10px] px-2 py-1 rounded-full font-bold">AI Generated</span>
+                            </div>
+                            <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-3 line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition" x-text="deck.title"></h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2" x-text="t('label_source') + ': ' + deck.context"></p>
                         </div>
-                        <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center text-sm text-gray-500">
+                        <div class="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 flex justify-between items-center text-sm text-gray-400">
                             <span x-text="formatDate(deck.createdAt)"></span>
-                            <button @click.stop="deleteDeck(deck.id)" class="text-red-500 hover:text-red-700 ml-4 transition">
+                            <button @click.stop="deleteDeck(deck.id)" class="text-gray-400 hover:text-red-500 transition p-1">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd" />
                                 </svg>
@@ -246,17 +122,16 @@
                 </template>
             </div>
             
-            <div x-show="decks.length === 0" class="text-center py-20 bg-white rounded-xl shadow-lg border border-gray-100">
-                <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13M14 5.75c0-1.242 1.503-2.121 2.5-1.75a3.5 3.5 0 013.5 3.5v7.5c0 1.933-1.567 3.5-3.5 3.5H4.25c-1.933 0-3.5-1.567-3.5-3.5v-7.5c0-1.242 1.503-2.121 2.5-1.75a3.5 3.5 0 003.5-3.5V6.253a.75.75 0 011.5 0z" />
-                </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900" x-text="t('empty_title')"></h3>
-                <p class="mt-1 text-sm text-gray-500" x-text="t('empty_subtitle')"></p>
+            <div x-show="decks.length === 0" class="text-center py-20 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700">
+                <div class="bg-indigo-50 dark:bg-slate-700 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                </div>
+                <h3 class="mt-2 text-lg font-bold text-gray-900 dark:text-white" x-text="t('empty_title')"></h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400" x-text="t('empty_subtitle')"></p>
                 <div class="mt-6">
-                    <button @click="view = 'create'" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M11 3a1 1 0 10-2 0v5.586L6.293 6.293a1 1 0 10-1.414 1.414l4 4a1 1 0 001.414 0l4-4a1 1 0 00-1.414-1.414L11 8.586V3zM3 17h14a1 1 0 000-2H3a1 1 0 000 2z" />
-                        </svg>
+                    <button @click="view = 'create'" class="inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-sm font-bold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition">
                         <span x-text="t('btn_new')"></span>
                     </button>
                 </div>
@@ -264,43 +139,80 @@
         </div>
 
         <div x-show="view === 'create'" x-cloak>
-            <h1 class="text-3xl font-extrabold text-gray-900 mb-6" x-text="t('header_create')"></h1>
-            
-            <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-
-                <div class="flex border-b border-gray-200 mb-6">
-                    <button @click="createMode = 'topic'" :class="createMode === 'topic' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500'" class="pb-2 px-4 font-bold border-b-2 text-sm transition" x-text="t('tab_topic')"></button>
-                    <button @click="createMode = 'file'" :class="createMode === 'file' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500'" class="pb-2 px-4 font-bold border-b-2 text-sm transition" x-text="t('tab_file')"></button>
-                </div>
+            <div class="max-w-3xl mx-auto">
+                <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-2" x-text="t('header_create')"></h1>
+                <p class="text-gray-500 dark:text-gray-400 mb-8">Upload documents or paste text to generate optimized flashcards instantly.</p>
                 
-                <div x-show="createMode === 'topic'">
-                    <div class="mb-6">
-                        <label class="block text-sm font-bold text-gray-700 mb-2" x-text="t('label_topic')"></label>
-                        <input x-model="topicInput" type="text" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-base focus:ring-2 focus:ring-indigo-500 outline-none transition" :placeholder="t('topic_placeholder')">
+                <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700">
+
+                    <div class="flex border-b border-gray-200 dark:border-slate-700 mb-6">
+                        <button @click="createMode = 'topic'" :class="createMode === 'topic' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="pb-3 px-6 font-bold border-b-2 text-sm transition">
+                            <span x-text="t('tab_topic')"></span>
+                        </button>
+                        <button @click="createMode = 'file'" :class="createMode === 'file' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="pb-3 px-6 font-bold border-b-2 text-sm transition">
+                            <span x-text="t('tab_file')"></span>
+                        </button>
                     </div>
-                </div>
-
-                <div x-show="createMode === 'file'">
-                    <div class="mb-6">
-                        <label class="block text-sm font-bold text-gray-700 mb-2" x-text="t('label_file')"></label>
-                        <textarea x-model="fileInput" rows="10" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-base focus:ring-2 focus:ring-indigo-500 outline-none transition" :placeholder="t('file_placeholder')"></textarea>
+                    
+                    <div x-show="createMode === 'topic'">
+                        <div class="mb-6">
+                            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2" x-text="t('label_topic')"></label>
+                            <input x-model="topicInput" type="text" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 text-base focus:ring-2 focus:ring-indigo-500 outline-none transition dark:text-white" :placeholder="t('topic_placeholder')">
+                        </div>
                     </div>
-                </div>
 
-                <div class="mb-6">
-                    <label class="block text-sm font-bold text-gray-700 mb-2" x-text="t('label_deck_title')"></label>
-                    <input x-model="deckTitle" type="text" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-base focus:ring-2 focus:ring-indigo-500 outline-none transition" :placeholder="t('title_placeholder')">
-                </div>
+                    <div x-show="createMode === 'file'">
+                        <div class="mb-6">
+                            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2" x-text="t('label_file')"></label>
+                            
+                            <div class="mb-4 p-4 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-xl text-center hover:bg-gray-50 dark:hover:bg-slate-700/50 transition cursor-pointer relative">
+                                <input type="file" @change="handleFileUpload" accept=".txt,.md,.pdf,.doc,.docx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                                <div class="flex flex-col items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                    <span class="text-sm text-indigo-600 dark:text-indigo-400 font-bold">Upload a file (PDF, Doc, Txt)</span>
+                                    <span class="text-xs text-gray-400 mt-1">or drag and drop</span>
+                                </div>
+                            </div>
 
-                <button @click="handleGenerate()" :disabled="loading" class="w-full mt-6 bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-70 disabled:cursor-not-allowed transition flex justify-center items-center gap-2 shadow-md">
-                    <span x-show="loading" class="animate-spin h-5 w-5 border-2 border-white border-opacity-50 rounded-full border-t-transparent"></span>
-                    <span x-text="loading ? t('btn_loading') : t('btn_generate')"></span>
-                </button>
+                            <textarea x-model="fileInput" rows="8" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 text-base focus:ring-2 focus:ring-indigo-500 outline-none transition dark:text-white" :placeholder="t('file_placeholder')"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div class="col-span-1">
+                            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Quantity</label>
+                            <div class="relative">
+                                <select x-model.number="cardCount" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 text-base focus:ring-2 focus:ring-indigo-500 outline-none transition appearance-none dark:text-white font-bold cursor-pointer">
+                                    <option value="4">4 Cards</option>
+                                    <option value="5">5 Cards</option>
+                                    <option value="6">6 Cards</option>
+                                    <option value="8">8 Cards</option>
+                                    <option value="10">10 Cards (Max)</option>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
+                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-span-1 md:col-span-2">
+                            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2" x-text="t('label_deck_title')"></label>
+                            <input x-model="deckTitle" type="text" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 text-base focus:ring-2 focus:ring-indigo-500 outline-none transition dark:text-white" :placeholder="t('title_placeholder')">
+                        </div>
+                    </div>
+
+                    <button @click="handleGenerate()" :disabled="loading" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed transition flex justify-center items-center gap-3 transform hover:-translate-y-0.5">
+                        <span x-show="loading" class="animate-spin h-5 w-5 border-2 border-white border-opacity-50 rounded-full border-t-transparent"></span>
+                        <span x-text="loading ? t('btn_loading') : t('btn_generate')"></span>
+                    </button>
+                </div>
             </div>
         </div>
 
         <div x-show="view === 'deckDetail'" x-cloak>
-            <button @click="view = 'dashboard'" class="text-indigo-600 hover:text-indigo-800 flex items-center mb-4 transition">
+            <button @click="view = 'dashboard'" class="text-indigo-600 dark:text-indigo-400 hover:underline flex items-center mb-6 transition font-bold">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
                 </svg>
@@ -309,23 +221,26 @@
 
             <template x-if="currentDeck">
                 <div>
-                    <h1 class="text-3xl font-extrabold text-gray-900 mb-2" x-text="currentDeck.title"></h1>
-                    <p class="text-base text-gray-500 mb-6" x-text="t('label_source') + ': ' + currentDeck.context"></p>
+                    <div class="mb-8">
+                        <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-2" x-text="currentDeck.title"></h1>
+                        <p class="text-base text-gray-500 dark:text-gray-400" x-text="t('label_source') + ': ' + currentDeck.context"></p>
+                    </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 card-container">
                         <template x-for="(card, index) in currentDeck.cards" :key="index">
-                            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 transition-shadow duration-500 ease-in-out cursor-pointer relative h-64" 
+                            <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 transition-shadow duration-500 ease-in-out cursor-pointer relative h-72 group" 
                                 @click="card.flipped = !card.flipped">
                                 
                                 <div class="card-inner" :class="{ 'rotate-y-180': card.flipped }">
-                                    <div class="front-content" x-show="!card.flipped">
-                                        <p class="text-sm font-bold text-indigo-600 mb-2" x-text="t('label_front')"></p>
-                                        <p class="text-xl font-bold text-gray-900" x-text="card.front"></p>
+                                    <div class="front-content bg-white dark:bg-slate-800 rounded-2xl" x-show="!card.flipped">
+                                        <p class="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider mb-4" x-text="t('label_front')"></p>
+                                        <p class="text-2xl font-bold text-gray-800 dark:text-white" x-text="card.front"></p>
+                                        <div class="absolute bottom-4 text-gray-400 text-sm">Click to flip</div>
                                     </div>
                                     
-                                    <div class="back-content" x-show="card.flipped">
-                                        <p class="text-sm font-bold text-green-600 mb-2" x-text="t('label_back')"></p>
-                                        <p class="text-xl text-gray-900" x-text="card.back"></p>
+                                    <div class="back-content bg-indigo-50 dark:bg-slate-700 rounded-2xl border-2 border-indigo-100 dark:border-slate-600" x-show="card.flipped">
+                                        <p class="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-4" x-text="t('label_back')"></p>
+                                        <p class="text-xl text-gray-800 dark:text-white leading-relaxed" x-text="card.back"></p>
                                     </div>
                                 </div>
                             </div>
@@ -335,5 +250,215 @@
             </template>
         </div>
     </div>
+
+    <script>
+        function app() {
+            return {
+                lang: localStorage.getItem('istu_lang') || 'vi',
+                isDarkMode: localStorage.getItem('istu_theme') === 'dark',
+                view: 'dashboard',
+                loading: false,
+                decks: JSON.parse(localStorage.getItem('istu_decks') || '[]'),
+                
+                // Form Data
+                topicInput: '',
+                fileInput: '',
+                deckTitle: '',
+                cardCount: 5, // Default card count
+                createMode: 'topic',
+                currentDeck: null,
+                
+                // YOUR API PROXY URL
+                PROXY_API_URL: 'https://istu-api-proxy-c4r83q6nf-thanhcutis-projects.vercel.app/api/generate',
+
+                translations: {
+                    en: {
+                        btn_new: 'Create New Deck',
+                        header_dashboard: 'My Library',
+                        header_create: 'Generate Flashcards',
+                        tab_topic: 'Topic / Concept',
+                        tab_file: 'Document / Text',
+                        label_topic: 'Enter a topic',
+                        topic_placeholder: 'E.g., Photosynthesis, Supply Chain Management...',
+                        label_file: 'Paste text or upload file',
+                        file_placeholder: 'Paste content from your notes, PDFs, or docs here...',
+                        label_deck_title: 'Deck Title (Optional)',
+                        title_placeholder: 'Auto-generated if left blank',
+                        btn_generate: 'Generate with AI',
+                        btn_loading: 'Processing...',
+                        btn_back: 'Back to Library',
+                        label_cards: 'cards',
+                        label_source: 'Source',
+                        label_front: 'Question',
+                        label_back: 'Answer',
+                        empty_title: 'No Flashcards Yet',
+                        empty_subtitle: 'Start your learning journey by creating your first deck.',
+                        error_context: 'Please provide a topic or text content.',
+                        error_api: 'Generation Failed',
+                        title: 'ISTU - AI Flashcards'
+                    },
+                    vi: {
+                        btn_new: 'Tạo Bộ Thẻ Mới',
+                        header_dashboard: 'Thư Viện Của Tôi',
+                        header_create: 'Tạo Thẻ Ghi Nhớ AI',
+                        tab_topic: 'Chủ Đề / Khái Niệm',
+                        tab_file: 'Tài Liệu / Văn Bản',
+                        label_topic: 'Nhập chủ đề',
+                        topic_placeholder: 'Ví dụ: Quang hợp, Quản trị chuỗi cung ứng...',
+                        label_file: 'Dán văn bản hoặc tải file',
+                        file_placeholder: 'Dán nội dung từ ghi chú, PDF, hoặc tài liệu vào đây...',
+                        label_deck_title: 'Tiêu đề bộ thẻ (Tùy chọn)',
+                        title_placeholder: 'Tự động tạo nếu để trống',
+                        btn_generate: 'Tạo Thẻ Ngay',
+                        btn_loading: 'Đang xử lý...',
+                        btn_back: 'Quay lại',
+                        label_cards: 'thẻ',
+                        label_source: 'Nguồn',
+                        label_front: 'Câu hỏi',
+                        label_back: 'Trả lời',
+                        empty_title: 'Chưa có bộ thẻ nào',
+                        empty_subtitle: 'Hãy bắt đầu hành trình học tập bằng cách tạo bộ thẻ đầu tiên.',
+                        error_context: 'Vui lòng nhập chủ đề hoặc nội dung văn bản.',
+                        error_api: 'Lỗi Tạo Thẻ',
+                        title: 'ISTU - AI Flashcards'
+                    }
+                },
+
+                // Initialize Theme
+                initTheme() {
+                    if (this.isDarkMode) {
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                    }
+                    this.updateTitle();
+                },
+
+                // Toggle Dark/Light Mode
+                toggleTheme() {
+                    this.isDarkMode = !this.isDarkMode;
+                    localStorage.setItem('istu_theme', this.isDarkMode ? 'dark' : 'light');
+                    if (this.isDarkMode) {
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                    }
+                },
+
+                setLang(lang) {
+                    this.lang = lang;
+                    localStorage.setItem('istu_lang', lang);
+                    this.updateTitle();
+                },
+
+                t(key) {
+                    return this.translations[this.lang][key] || this.translations['en'][key];
+                },
+
+                updateTitle() {
+                    document.title = this.t('title');
+                },
+
+                formatDate(timestamp) {
+                    return new Date(timestamp).toLocaleDateString(this.lang === 'vi' ? 'vi-VN' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                },
+
+                // Handle File Upload (Client-side Text Extraction)
+                handleFileUpload(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    // Simple Text Reader for now. 
+                    // Note: Full PDF parsing requires complex libraries like pdf.js which might bloat this single-file setup.
+                    // For now, we read text/md directly. For PDF/Doc, we prompt user to copy-paste for best accuracy.
+                    if (file.type === "text/plain" || file.name.endsWith('.md')) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.fileInput = e.target.result;
+                        };
+                        reader.readAsText(file);
+                    } else {
+                        alert("For PDF and Word documents, please copy and paste the text content directly for the best AI accuracy in this version.");
+                    }
+                },
+
+                // Main Generation Logic
+                async handleGenerate() {
+                    const context = this.createMode === 'topic' ? this.topicInput : this.fileInput;
+                    const isFile = this.createMode === 'file';
+
+                    if (!context.trim()) {
+                        return alert(this.t('error_context'));
+                    }
+
+                    this.loading = true;
+                    // Auto-generate title if empty
+                    const displayTitle = this.deckTitle.trim() || (isFile ? (context.substring(0, 30) + '...') : context);
+
+                    try {
+                        const response = await fetch(this.PROXY_API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                context: context, 
+                                isFile: isFile, 
+                                lang: this.lang,
+                                cardCount: this.cardCount // Send the selected quantity
+                            }),
+                        });
+
+                        let data;
+                        try {
+                            data = await response.json(); 
+                        } catch (e) {
+                            const text = await response.text();
+                            throw new Error(text || 'Invalid server response');
+                        }
+                        
+                        if (!response.ok) {
+                            throw new Error(data.error || `Error ${response.status}`); 
+                        }
+                        
+                        // Create new deck object
+                        const newDeck = {
+                            id: Date.now(),
+                            title: displayTitle,
+                            context: isFile ? 'File/Text' : 'Topic',
+                            createdAt: Date.now(),
+                            cards: data.map(card => ({ ...card, flipped: false }))
+                        };
+
+                        // Save to LocalStorage
+                        this.decks.unshift(newDeck);
+                        localStorage.setItem('istu_decks', JSON.stringify(this.decks));
+                        
+                        // Reset form
+                        this.topicInput = '';
+                        this.fileInput = '';
+                        this.deckTitle = '';
+                        this.openDeck(newDeck);
+
+                    } catch (error) {
+                        console.error('Generation Error:', error);
+                        alert(`${this.t('error_api')}\n${error.message}`);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                openDeck(deck) {
+                    this.currentDeck = deck;
+                    this.view = 'deckDetail';
+                },
+
+                deleteDeck(id) {
+                    if (confirm('Delete this deck?')) {
+                        this.decks = this.decks.filter(deck => deck.id !== id);
+                        localStorage.setItem('istu_decks', JSON.stringify(this.decks));
+                    }
+                }
+            }
+        }
+    </script>
 </body>
 </html>
