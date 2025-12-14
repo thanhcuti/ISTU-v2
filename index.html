@@ -5,45 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ISTU Flashcard Generator - AI Powered</title>
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            darkMode: 'class', // Enable manual dark mode toggle
-        }
+        tailwind.config = { darkMode: 'class' }
     </script>
-    
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
     
     <style>
-        /* Utility to prevent content flash before Alpine loads */
         [x-cloak] { display: none !important; }
         
-        /* 3D Card Flip Animation Styles */
+        /* --- 3D Card Animation Styles --- */
         .card-container { perspective: 1000px; }
         .card-inner {
             transform-style: preserve-3d;
-            transition: transform 0.6s;
+            transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1); /* Smoother easing */
             position: relative;
             width: 100%;
             height: 100%;
         }
         .rotate-y-180 { transform: rotateY(180deg); }
+        
+        /* Common styles for both faces */
         .front-content, .back-content { 
-            backface-visibility: hidden; 
+            backface-visibility: hidden; /* Key for 3D effect */
             position: absolute;
-            width: 100%;
-            height: 100%;
+            inset: 0; /* Replaces top/left/width/height */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
             padding: 1.5rem;
-            top: 0;
-            left: 0;
         }
+        /* Rotate back face initially so it's hidden */
         .back-content { transform: rotateY(180deg); }
     </style>
 </head>
@@ -57,33 +52,28 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
             
             <div class="flex items-center gap-3 cursor-pointer" @click="view = 'dashboard'">
-
-                <img src="images/logo_tim_thanhcuti.png" alt="Logo Thanhcuti" class="h-8 w-8 rounded-full object-cover shadow-md">
-                
+                <img src="images/logo_tim_thanhcuti.png" alt="Logo" class="h-8 w-8 rounded-full object-cover shadow-md">
                 <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg">
                     <i class="fa-solid fa-bolt fa-lg"></i>
                 </div>
-
                 <span class="font-bold text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-500">ISTU</span>
             </div>
             
             <div class="flex items-center space-x-4">
-                <a href="https://forms.gle/By1K53hjazEzZbik9" target="_blank" class="hidden md:flex text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
-                    Feedback
-                </a>
+                <a href="https://forms.gle/By1K53hjazEzZbik9" target="_blank" class="hidden md:flex text-sm font-medium text-gray-500 hover:text-indigo-600 transition">Feedback</a>
 
-                <button @click="toggleTheme()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition text-gray-600 dark:text-gray-300">
-                    <i x-show="!isDarkMode" class="fa-solid fa-sun h-5 w-5"></i>
-                    <i x-show="isDarkMode" x-cloak class="fa-solid fa-moon h-5 w-5"></i>
+                <button @click="toggleTheme()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition">
+                    <i x-show="!isDarkMode" class="fa-solid fa-sun h-5 w-5 text-gray-600"></i>
+                    <i x-show="isDarkMode" x-cloak class="fa-solid fa-moon h-5 w-5 text-gray-300"></i>
                 </button>
 
                 <div class="flex items-center space-x-2 text-sm font-bold">
-                    <button @click="setLang('vi')" :class="lang === 'vi' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 hover:text-gray-600'">VI</button>
+                    <button @click="setLang('vi')" :class="lang === 'vi' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'">VI</button>
                     <span class="text-gray-300">|</span>
-                    <button @click="setLang('en')" :class="lang === 'en' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 hover:text-gray-600'">EN</button>
+                    <button @click="setLang('en')" :class="lang === 'en' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'">EN</button>
                 </div>
 
-                <button @click="view = 'create'" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                <button @click="view = 'create'" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-md hover:translate-y-[-2px]">
                     <span x-text="t('btn_new')"></span>
                 </button>
             </div>
@@ -94,7 +84,7 @@
         
         <div x-show="view === 'dashboard'" x-cloak>
             <div class="flex justify-between items-end mb-6">
-                <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white" x-text="t('header_dashboard')"></h1>
+                <h1 class="text-3xl font-extrabold" x-text="t('header_dashboard')"></h1>
             </div>
             
             <div x-show="decks.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -102,17 +92,15 @@
                     <div class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 hover:shadow-xl transition flex flex-col justify-between cursor-pointer group" @click="openDeck(deck)">
                         <div>
                             <div class="flex justify-between items-start">
-                                <p class="text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-1 uppercase" x-text="deck.cards.length + ' ' + t('label_cards')"></p>
+                                <p class="text-xs font-bold text-indigo-600 mb-1 uppercase" x-text="deck.cards.length + ' ' + t('label_cards')"></p>
                                 <span class="bg-indigo-50 dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 text-[10px] px-2 py-1 rounded-full font-bold">AI Generated</span>
                             </div>
-                            <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-3 line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition" x-text="deck.title"></h2>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2" x-text="t('label_source') + ': ' + deck.context"></p>
+                            <h2 class="text-xl font-bold mb-3 line-clamp-2 group-hover:text-indigo-600 transition" x-text="deck.title"></h2>
+                            <p class="text-sm text-gray-500 line-clamp-2" x-text="t('label_source') + ': ' + deck.context"></p>
                         </div>
                         <div class="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 flex justify-between items-center text-sm text-gray-400">
                             <span x-text="formatDate(deck.createdAt)"></span>
-                            <button @click.stop="deleteDeck(deck.id)" class="text-gray-400 hover:text-red-500 transition p-1">
-                                <i class="fa-solid fa-trash-can h-5 w-5"></i>
-                            </button>
+                            <button @click.stop="deleteDeck(deck.id)" class="hover:text-red-500 transition p-1"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </div>
                 </template>
@@ -120,12 +108,12 @@
             
             <div x-show="decks.length === 0" class="text-center py-20 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700">
                 <div class="bg-indigo-50 dark:bg-slate-700 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fa-solid fa-book-open h-10 w-10 text-indigo-600 dark:text-indigo-400"></i>
+                    <i class="fa-solid fa-book-open h-10 w-10 text-indigo-600"></i>
                 </div>
-                <h3 class="mt-2 text-lg font-bold text-gray-900 dark:text-white" x-text="t('empty_title')"></h3>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400" x-text="t('empty_subtitle')"></p>
+                <h3 class="mt-2 text-lg font-bold" x-text="t('empty_title')"></h3>
+                <p class="mt-1 text-sm text-gray-500" x-text="t('empty_subtitle')"></p>
                 <div class="mt-6">
-                    <button @click="view = 'create'" class="inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-sm font-bold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition">
+                    <button @click="view = 'create'" class="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg transition">
                         <span x-text="t('btn_new')"></span>
                     </button>
                 </div>
@@ -134,49 +122,60 @@
 
         <div x-show="view === 'create'" x-cloak>
             <div class="max-w-3xl mx-auto">
-                <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-2" x-text="t('header_create')"></h1>
-                <p class="text-gray-500 dark:text-gray-400 mb-8">Upload documents or paste text to generate optimized flashcards instantly.</p>
+                <h1 class="text-3xl font-extrabold mb-2" x-text="t('header_create')"></h1>
+                <p class="text-gray-500 mb-8">Upload documents or paste text to generate optimized flashcards instantly.</p>
                 
                 <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700">
 
                     <div class="flex border-b border-gray-200 dark:border-slate-700 mb-6">
-                        <button @click="createMode = 'topic'" :class="createMode === 'topic' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="pb-3 px-6 font-bold border-b-2 text-sm transition">
+                        <button @click="createMode = 'topic'" :class="createMode === 'topic' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500'" class="pb-3 px-6 font-bold border-b-2 text-sm transition">
                             <span x-text="t('tab_topic')"></span>
                         </button>
-                        <button @click="createMode = 'file'" :class="createMode === 'file' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="pb-3 px-6 font-bold border-b-2 text-sm transition">
+                        <button @click="createMode = 'file'" :class="createMode === 'file' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500'" class="pb-3 px-6 font-bold border-b-2 text-sm transition">
                             <span x-text="t('tab_file')"></span>
                         </button>
                     </div>
                     
                     <div x-show="createMode === 'topic'">
                         <div class="mb-6">
-                            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2" x-text="t('label_topic')"></label>
-                            <input x-model="topicInput" type="text" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 text-base focus:ring-2 focus:ring-indigo-500 outline-none transition dark:text-white" :placeholder="t('topic_placeholder')">
+                            <label class="block text-sm font-bold mb-2" x-text="t('label_topic')"></label>
+                            <input x-model="topicInput" type="text" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition" :placeholder="t('topic_placeholder')">
                         </div>
                     </div>
 
                     <div x-show="createMode === 'file'">
                         <div class="mb-6">
-                            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2" x-text="t('label_file')"></label>
+                            <label class="block text-sm font-bold mb-2" x-text="t('label_file')"></label>
                             
-                            <div class="mb-4 p-4 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-xl text-center hover:bg-gray-50 dark:hover:bg-slate-700/50 transition cursor-pointer relative">
+                            <div x-show="!fileName" class="mb-4 p-4 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-xl text-center hover:bg-gray-50 dark:hover:bg-slate-700/50 transition cursor-pointer relative">
                                 <input type="file" @change="handleFileUpload" accept=".txt,.md,.pdf,.doc,.docx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                                 <div class="flex flex-col items-center">
                                     <i class="fa-solid fa-cloud-arrow-up h-8 w-8 text-gray-400 mb-2"></i>
-                                    <span class="text-sm text-indigo-600 dark:text-indigo-400 font-bold">Upload a file (PDF, Doc, Txt)</span>
+                                    <span class="text-sm text-indigo-600 font-bold">Upload a file (PDF, Doc, Txt)</span>
                                     <span class="text-xs text-gray-400 mt-1">or drag and drop</span>
                                 </div>
                             </div>
 
-                            <textarea x-model="fileInput" rows="8" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 text-base focus:ring-2 focus:ring-indigo-500 outline-none transition dark:text-white" :placeholder="t('file_placeholder')"></textarea>
+                            <div x-show="fileName" class="mb-4 p-4 bg-indigo-50 dark:bg-slate-700/50 border border-indigo-100 dark:border-slate-600 rounded-xl flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <i class="fa-solid fa-file-lines text-indigo-600 text-xl"></i>
+                                    <div>
+                                        <p class="text-sm font-bold text-gray-800 dark:text-white" x-text="fileName"></p>
+                                        <p class="text-xs text-green-600 font-medium">Ready to extract</p>
+                                    </div>
+                                </div>
+                                <button @click="clearFile" class="text-gray-400 hover:text-red-500 transition"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+
+                            <textarea x-model="fileInput" rows="8" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition" :placeholder="t('file_placeholder')"></textarea>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                         <div class="col-span-1">
-                            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Quantity</label>
+                            <label class="block text-sm font-bold mb-2">Quantity</label>
                             <div class="relative">
-                                <select x-model.number="cardCount" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 text-base focus:ring-2 focus:ring-indigo-500 outline-none transition appearance-none dark:text-white font-bold cursor-pointer">
+                                <select x-model.number="cardCount" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 appearance-none font-bold cursor-pointer focus:ring-2 focus:ring-indigo-500 outline-none">
                                     <option value="4">4 Cards</option>
                                     <option value="5">5 Cards</option>
                                     <option value="6">6 Cards</option>
@@ -184,14 +183,14 @@
                                     <option value="10">10 Cards (Max)</option>
                                 </select>
                                 <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
-                                    <i class="fa-solid fa-angle-down w-4 h-4 text-gray-500"></i>
+                                    <i class="fa-solid fa-angle-down text-gray-500"></i>
                                 </div>
                             </div>
                         </div>
 
                         <div class="col-span-1 md:col-span-2">
-                            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2" x-text="t('label_deck_title')"></label>
-                            <input x-model="deckTitle" type="text" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 text-base focus:ring-2 focus:ring-indigo-500 outline-none transition dark:text-white" :placeholder="t('title_placeholder')">
+                            <label class="block text-sm font-bold mb-2" x-text="t('label_deck_title')"></label>
+                            <input x-model="deckTitle" type="text" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition" :placeholder="t('title_placeholder')">
                         </div>
                     </div>
 
@@ -204,7 +203,7 @@
         </div>
 
         <div x-show="view === 'deckDetail'" x-cloak>
-            <button @click="view = 'dashboard'" class="text-indigo-600 dark:text-indigo-400 hover:underline flex items-center mb-6 transition font-bold">
+            <button @click="view = 'dashboard'" class="text-indigo-600 hover:underline flex items-center mb-6 transition font-bold">
                 <i class="fa-solid fa-arrow-left h-5 w-5 mr-1"></i>
                 <span x-text="t('btn_back')"></span>
             </button>
@@ -212,23 +211,24 @@
             <template x-if="currentDeck">
                 <div>
                     <div class="mb-8">
-                        <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-2" x-text="currentDeck.title"></h1>
-                        <p class="text-base text-gray-500 dark:text-gray-400" x-text="t('label_source') + ': ' + currentDeck.context"></p>
+                        <h1 class="text-3xl font-extrabold mb-2" x-text="currentDeck.title"></h1>
+                        <p class="text-base text-gray-500" x-text="t('label_source') + ': ' + currentDeck.context"></p>
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 card-container">
                         <template x-for="(card, index) in currentDeck.cards" :key="index">
-                            <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 transition-shadow duration-500 ease-in-out cursor-pointer relative h-72 group" 
+                            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 cursor-pointer relative h-72 group perspective-container" 
                                 @click="card.flipped = !card.flipped">
                                 
                                 <div class="card-inner" :class="{ 'rotate-y-180': card.flipped }">
-                                    <div class="front-content bg-white dark:bg-slate-800 rounded-2xl" x-show="!card.flipped">
-                                        <p class="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider mb-4" x-text="t('label_front')"></p>
+                                    
+                                    <div class="front-content bg-white dark:bg-slate-800 rounded-2xl">
+                                        <p class="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-4" x-text="t('label_front')"></p>
                                         <p class="text-2xl font-bold text-gray-800 dark:text-white" x-text="card.front"></p>
-                                        <div class="absolute bottom-4 text-gray-400 text-sm">Click to flip</div>
+                                        <div class="absolute bottom-4 text-gray-400 text-sm opacity-50">Click to flip</div>
                                     </div>
                                     
-                                    <div class="back-content bg-indigo-50 dark:bg-slate-700 rounded-2xl border-2 border-indigo-100 dark:border-slate-600" x-show="card.flipped">
+                                    <div class="back-content bg-indigo-50 dark:bg-slate-700 rounded-2xl border-2 border-indigo-100 dark:border-slate-600">
                                         <p class="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-4" x-text="t('label_back')"></p>
                                         <p class="text-xl text-gray-800 dark:text-white leading-relaxed" x-text="card.back"></p>
                                     </div>
@@ -241,31 +241,26 @@
         </div>
     </div>
 
-    <footer class="bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 mt-auto transition-colors duration-300">
+    <footer class="bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 mt-auto">
         <div class="max-w-7xl mx-auto px-6 py-8">
             <div class="flex flex-col md:flex-row justify-between items-center md:items-start gap-8 text-sm">
-                
                 <div class="text-center md:text-left">
-                    <h4 class="font-bold text-gray-900 dark:text-white mb-2 text-base">Contact Emails</h4>
+                    <h4 class="font-bold text-gray-900 dark:text-white mb-2 text-base">Contact</h4>
                     <div class="flex flex-col gap-1">
-                        <a href="mailto:thanhmancutimangre08@gmail.com" class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition">thanhmancutimangre08@gmail.com</a>
-                        <a href="mailto:tanthanhnguyenquang08@gmail.com" class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition">tanthanhnguyenquang08@gmail.com</a>
+                        <a href="mailto:thanhmancutimangre08@gmail.com" class="text-gray-500 hover:text-indigo-600 transition">thanhmancutimangre08@gmail.com</a>
                     </div>
                 </div>
-
                 <div class="text-center">
-                    <h4 class="font-bold text-gray-900 dark:text-white mb-2 text-base">Facebook</h4>
-                    <span class="text-gray-500 dark:text-gray-400 font-medium text-base">Nguyễn Quang Tân Thanh</span>
+                    <h4 class="font-bold text-gray-900 dark:text-white mb-2 text-base">Creator</h4>
+                    <span class="text-gray-500 font-medium">Nguyễn Quang Tân Thanh</span>
                 </div>
-
                 <div class="text-center md:text-right">
-                    <h4 class="font-bold text-gray-900 dark:text-white mb-2 text-base">Number</h4>
-                    <a href="tel:0901579757" class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-mono text-base">0901 579 757 (Vietnam)</a>
+                    <h4 class="font-bold text-gray-900 dark:text-white mb-2 text-base">Phone</h4>
+                    <a href="tel:0901579757" class="text-gray-500 hover:text-indigo-600 font-mono">0901 579 757</a>
                 </div>
             </div>
-
             <div class="border-t border-gray-100 dark:border-slate-700 mt-8 pt-8 text-center">
-                <p class="text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-widest">Made by Thanhcuti</p>
+                <p class="text-indigo-600 font-bold text-xs uppercase tracking-widest">Made for RMIT Scholarship Project</p>
             </div>
         </div>
     </footer>
@@ -273,6 +268,7 @@
     <script>
         function app() {
             return {
+                // Config & State
                 lang: localStorage.getItem('istu_lang') || 'vi',
                 isDarkMode: localStorage.getItem('istu_theme') === 'dark',
                 view: 'dashboard',
@@ -282,12 +278,13 @@
                 // Form Data
                 topicInput: '',
                 fileInput: '',
+                fileName: '', // Tracks the uploaded filename
                 deckTitle: '',
                 cardCount: 5,
                 createMode: 'topic',
                 currentDeck: null,
                 
-                // API PROXY URL
+                // Endpoints
                 PROXY_API_URL: 'https://istu-api-proxy-c4r83q6nf-thanhcutis-projects.vercel.app/api/generate',
 
                 translations: {
@@ -343,25 +340,17 @@
                     }
                 },
 
-                // Initialize Theme
+                // --- Methods ---
+
                 initTheme() {
-                    if (this.isDarkMode) {
-                        document.documentElement.classList.add('dark');
-                    } else {
-                        document.documentElement.classList.remove('dark');
-                    }
+                    document.documentElement.classList.toggle('dark', this.isDarkMode);
                     this.updateTitle();
                 },
 
-                // Toggle Dark/Light Mode
                 toggleTheme() {
                     this.isDarkMode = !this.isDarkMode;
                     localStorage.setItem('istu_theme', this.isDarkMode ? 'dark' : 'light');
-                    if (this.isDarkMode) {
-                        document.documentElement.classList.add('dark');
-                    } else {
-                        document.documentElement.classList.remove('dark');
-                    }
+                    document.documentElement.classList.toggle('dark', this.isDarkMode);
                 },
 
                 setLang(lang) {
@@ -382,12 +371,13 @@
                     return new Date(timestamp).toLocaleDateString(this.lang === 'vi' ? 'vi-VN' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' });
                 },
 
-                // Handle File Upload (Client-side Text Extraction)
+                // Handle File Upload (Updated for UX)
                 handleFileUpload(event) {
                     const file = event.target.files[0];
                     if (!file) return;
 
-                    // Simple Text Reader for now. 
+                    this.fileName = file.name; // Display filename
+
                     if (file.type === "text/plain" || file.name.endsWith('.md')) {
                         const reader = new FileReader();
                         reader.onload = (e) => {
@@ -395,11 +385,19 @@
                         };
                         reader.readAsText(file);
                     } else {
-                        alert("For PDF and Word documents, please copy and paste the text content directly for the best AI accuracy in this version.");
+                        // For PDF/Doc, just holding the name is useful, user manually pastes text currently
+                        alert("For PDF/Docs in this version, please confirm the extracted text or paste it manually below.");
                     }
                 },
 
-                // Main Generation Logic
+                clearFile() {
+                    this.fileName = '';
+                    this.fileInput = '';
+                    // Reset input value to allow re-selecting same file
+                    const input = document.querySelector('input[type="file"]');
+                    if(input) input.value = '';
+                },
+
                 async handleGenerate() {
                     const context = this.createMode === 'topic' ? this.topicInput : this.fileInput;
                     const isFile = this.createMode === 'file';
@@ -409,8 +407,16 @@
                     }
 
                     this.loading = true;
-                    // Auto-generate title if empty
-                    const displayTitle = this.deckTitle.trim() || (isFile ? (context.substring(0, 30) + '...') : context);
+                    
+                    // Improved title generation logic
+                    let displayTitle = this.deckTitle.trim();
+                    if (!displayTitle) {
+                         if (isFile && this.fileName) {
+                             displayTitle = this.fileName;
+                         } else {
+                             displayTitle = context.length > 40 ? context.substring(0, 40) + '...' : context;
+                         }
+                    }
 
                     try {
                         const response = await fetch(this.PROXY_API_URL, {
@@ -420,7 +426,7 @@
                                 context: context, 
                                 isFile: isFile, 
                                 lang: this.lang,
-                                cardCount: this.cardCount // Send the selected quantity
+                                cardCount: this.cardCount
                             }),
                         });
 
@@ -432,11 +438,8 @@
                             throw new Error(text || 'Invalid server response');
                         }
                         
-                        if (!response.ok) {
-                            throw new Error(data.error || `Error ${response.status}`); 
-                        }
+                        if (!response.ok) throw new Error(data.error || `Error ${response.status}`); 
                         
-                        // Create new deck object
                         const newDeck = {
                             id: Date.now(),
                             title: displayTitle,
@@ -445,13 +448,13 @@
                             cards: data.map(card => ({ ...card, flipped: false }))
                         };
 
-                        // Save to LocalStorage
                         this.decks.unshift(newDeck);
                         localStorage.setItem('istu_decks', JSON.stringify(this.decks));
                         
-                        // Reset form
+                        // Reset forms
                         this.topicInput = '';
                         this.fileInput = '';
+                        this.fileName = '';
                         this.deckTitle = '';
                         this.openDeck(newDeck);
 
