@@ -3,34 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ISTU Flashcard Generator - AI Powered</title>
+    <title>ISTU Flashcard - Intelligent Study Tool</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = { darkMode: 'class' }
+        tailwind.config = { 
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Be Vietnam Pro"', 'sans-serif'] },
+                    animation: {
+                        blob: "blob 7s infinite",
+                        'spin-slow': 'spin 3s linear infinite',
+                    },
+                    keyframes: {
+                        blob: {
+                            "0%": { transform: "translate(0px, 0px) scale(1)" },
+                            "33%": { transform: "translate(30px, -50px) scale(1.1)" },
+                            "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
+                            "100%": { transform: "translate(0px, 0px) scale(1)" }
+                        }
+                    }
+                }
+            }
+        }
     </script>
+    
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
     
     <style>
         [x-cloak] { display: none !important; }
         
-        /* --- 3D Card Animation Styles --- */
+        /* Glassmorphism Effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .glass {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* 3D Flip Animation */
         .card-container { perspective: 1000px; }
         .card-inner {
             transform-style: preserve-3d;
-            transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1); /* Smoother easing */
+            transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
             position: relative;
             width: 100%;
             height: 100%;
         }
         .rotate-y-180 { transform: rotateY(180deg); }
-        
-        /* Common styles for both faces */
         .front-content, .back-content { 
-            backface-visibility: hidden; /* Key for 3D effect */
+            backface-visibility: hidden;
             position: absolute;
-            inset: 0; /* Replaces top/left/width/height */
+            inset: 0;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -38,200 +73,275 @@
             text-align: center;
             padding: 1.5rem;
         }
-        /* Rotate back face initially so it's hidden */
         .back-content { transform: rotateY(180deg); }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        
+        body { overflow-x: hidden; }
     </style>
 </head>
 
-<body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300 min-h-screen flex flex-col"
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300 min-h-screen flex flex-col relative"
       x-data="app()" 
       x-init="initTheme()"
       :class="{ 'dark': isDarkMode }">
 
-    <nav class="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-50 shadow-sm transition-colors duration-300">
+    <div class="fixed inset-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
+        <div class="absolute top-0 left-1/4 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div class="absolute top-0 right-1/4 w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div class="absolute -bottom-32 left-1/3 w-96 h-96 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <nav class="glass sticky top-0 z-50 shadow-sm transition-all duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
             
-            <div class="flex items-center gap-3 cursor-pointer" @click="view = 'dashboard'">
-                <img src="images/logo_tim_thanhcuti.png" alt="Logo" class="h-8 w-8 rounded-full object-cover shadow-md">
-                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg">
-                    <i class="fa-solid fa-bolt fa-lg"></i>
+            <div class="flex items-center gap-3 cursor-pointer group" @click="view = 'dashboard'">
+                <div class="relative">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full blur opacity-25 group-hover:opacity-75 transition duration-200"></div>
+                    <img src="images/logo_tim_thanhcuti.png" alt="Logo" class="relative h-10 w-10 rounded-full object-cover border-2 border-white dark:border-slate-800">
                 </div>
-                <span class="font-bold text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-500">ISTU</span>
+                <div class="flex flex-col">
+                    <span class="font-extrabold text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-500">ISTU</span>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Flashcard AI</span>
+                </div>
             </div>
             
-            <div class="flex items-center space-x-4">
-                <a href="https://forms.gle/By1K53hjazEzZbik9" target="_blank" class="hidden md:flex text-sm font-medium text-gray-500 hover:text-indigo-600 transition">Feedback</a>
+            <div class="flex items-center gap-2 md:gap-4">
+                <a href="https://forms.gle/By1K53hjazEzZbik9" target="_blank" class="hidden md:flex text-sm font-medium text-gray-500 hover:text-indigo-600 transition items-center gap-1">
+                    <i class="fa-regular fa-comment-dots"></i> Feedback
+                </a>
 
-                <button @click="toggleTheme()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition">
-                    <i x-show="!isDarkMode" class="fa-solid fa-sun h-5 w-5 text-gray-600"></i>
-                    <i x-show="isDarkMode" x-cloak class="fa-solid fa-moon h-5 w-5 text-gray-300"></i>
+                <div class="h-6 w-px bg-gray-300 dark:bg-slate-700 mx-1 hidden md:block"></div>
+
+                <button @click="toggleTheme()" class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-700/50 transition text-gray-600 dark:text-gray-300">
+                    <i x-show="!isDarkMode" class="fa-solid fa-sun text-orange-400 text-lg transition-transform hover:rotate-90"></i>
+                    <i x-show="isDarkMode" x-cloak class="fa-solid fa-moon text-indigo-300 text-lg transition-transform hover:-rotate-12"></i>
                 </button>
 
-                <div class="flex items-center space-x-2 text-sm font-bold">
-                    <button @click="setLang('vi')" :class="lang === 'vi' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'">VI</button>
-                    <span class="text-gray-300">|</span>
-                    <button @click="setLang('en')" :class="lang === 'en' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'">EN</button>
+                <div class="flex items-center bg-gray-100 dark:bg-slate-800 rounded-full p-1 border border-gray-200 dark:border-slate-700">
+                    <button @click="setLang('vi')" class="px-3 py-1 rounded-full text-xs font-bold transition-all" :class="lang === 'vi' ? 'bg-white dark:bg-slate-600 text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'">VI</button>
+                    <button @click="setLang('en')" class="px-3 py-1 rounded-full text-xs font-bold transition-all" :class="lang === 'en' ? 'bg-white dark:bg-slate-600 text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'">EN</button>
                 </div>
 
-                <button @click="view = 'create'" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-md hover:translate-y-[-2px]">
+                <button @click="view = 'create'" class="hidden sm:flex bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:shadow-indigo-500/30 transition transform hover:-translate-y-0.5 active:scale-95 items-center gap-2">
+                    <i class="fa-solid fa-plus"></i>
                     <span x-text="t('btn_new')"></span>
                 </button>
             </div>
         </div>
     </nav>
     
-    <div id="app-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-grow">
+    <div id="app-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full flex-grow relative z-10">
         
-        <div x-show="view === 'dashboard'" x-cloak>
-            <div class="flex justify-between items-end mb-6">
-                <h1 class="text-3xl font-extrabold" x-text="t('header_dashboard')"></h1>
+        <div x-show="view === 'dashboard'" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-4"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-cloak>
+             
+            <div class="flex justify-between items-end mb-8">
+                <div>
+                    <h1 class="text-4xl font-extrabold text-slate-800 dark:text-white tracking-tight" x-text="t('header_dashboard')"></h1>
+                    <p class="text-slate-500 dark:text-slate-400 mt-2 font-medium">Manage and review your study materials.</p>
+                </div>
+                <button @click="view = 'create'" class="sm:hidden bg-indigo-600 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 transition">
+                    <i class="fa-solid fa-plus text-xl"></i>
+                </button>
             </div>
             
             <div x-show="decks.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 <template x-for="deck in decks" :key="deck.id">
-                    <div class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 hover:shadow-xl transition flex flex-col justify-between cursor-pointer group" @click="openDeck(deck)">
-                        <div>
-                            <div class="flex justify-between items-start">
-                                <p class="text-xs font-bold text-indigo-600 mb-1 uppercase" x-text="deck.cards.length + ' ' + t('label_cards')"></p>
-                                <span class="bg-indigo-50 dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 text-[10px] px-2 py-1 rounded-full font-bold">AI Generated</span>
+                    <div class="glass p-6 rounded-2xl shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 border-t-4 border-t-indigo-500 transition-all duration-300 flex flex-col justify-between cursor-pointer group relative overflow-hidden" @click="openDeck(deck)">
+                        <div class="absolute -right-6 -top-6 w-24 h-24 bg-indigo-50 dark:bg-indigo-900/20 rounded-full transition-transform group-hover:scale-150"></div>
+                        <div class="relative z-10">
+                            <div class="flex justify-between items-start mb-3">
+                                <span class="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider flex items-center gap-1">
+                                    <i class="fa-solid fa-bolt text-[8px]"></i> AI Generated
+                                </span>
+                                <span class="text-xs font-bold text-gray-400" x-text="deck.cards.length + ' cards'"></span>
                             </div>
-                            <h2 class="text-xl font-bold mb-3 line-clamp-2 group-hover:text-indigo-600 transition" x-text="deck.title"></h2>
-                            <p class="text-sm text-gray-500 line-clamp-2" x-text="t('label_source') + ': ' + deck.context"></p>
+                            <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-2 line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition" x-text="deck.title"></h2>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 italic" x-text="deck.context"></p>
                         </div>
-                        <div class="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 flex justify-between items-center text-sm text-gray-400">
-                            <span x-text="formatDate(deck.createdAt)"></span>
-                            <button @click.stop="deleteDeck(deck.id)" class="hover:text-red-500 transition p-1"><i class="fa-solid fa-trash-can"></i></button>
+                        <div class="relative z-10 mt-5 pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center text-xs font-medium text-gray-400">
+                            <div class="flex items-center gap-1">
+                                <i class="fa-regular fa-clock"></i>
+                                <span x-text="formatDate(deck.createdAt)"></span>
+                            </div>
+                            <button @click.stop="deleteDeck(deck.id)" class="hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-full transition"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </div>
                 </template>
             </div>
             
-            <div x-show="decks.length === 0" class="text-center py-20 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700">
-                <div class="bg-indigo-50 dark:bg-slate-700 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fa-solid fa-book-open h-10 w-10 text-indigo-600"></i>
+            <div x-show="decks.length === 0" class="text-center py-24 glass rounded-3xl border-dashed border-2 border-slate-300 dark:border-slate-700">
+                <div class="relative inline-block">
+                    <div class="absolute inset-0 bg-indigo-200 dark:bg-indigo-900 blur-xl opacity-50 rounded-full"></div>
+                    <div class="bg-gradient-to-br from-indigo-100 to-white dark:from-slate-800 dark:to-slate-700 w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner relative z-10">
+                        <i class="fa-solid fa-layer-group text-4xl text-indigo-500"></i>
+                    </div>
                 </div>
-                <h3 class="mt-2 text-lg font-bold" x-text="t('empty_title')"></h3>
-                <p class="mt-1 text-sm text-gray-500" x-text="t('empty_subtitle')"></p>
-                <div class="mt-6">
-                    <button @click="view = 'create'" class="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg transition">
-                        <span x-text="t('btn_new')"></span>
+                <h3 class="mt-4 text-2xl font-bold text-slate-900 dark:text-white" x-text="t('empty_title')"></h3>
+                <p class="mt-2 text-slate-500 dark:text-slate-400 max-w-md mx-auto" x-text="t('empty_subtitle')"></p>
+                <div class="mt-8">
+                    <button @click="view = 'create'" class="inline-flex items-center px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition transform hover:-translate-y-1">
+                        <span x-text="t('btn_new')"></span> <i class="fa-solid fa-arrow-right ml-2"></i>
                     </button>
                 </div>
             </div>
         </div>
 
-        <div x-show="view === 'create'" x-cloak>
+        <div x-show="view === 'create'" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-x-4"
+             x-transition:enter-end="opacity-100 translate-x-0"
+             x-cloak>
+            
             <div class="max-w-3xl mx-auto">
-                <h1 class="text-3xl font-extrabold mb-2" x-text="t('header_create')"></h1>
-                <p class="text-gray-500 mb-8">Upload documents or paste text to generate optimized flashcards instantly.</p>
+                <div class="text-center mb-10">
+                    <h1 class="text-4xl font-extrabold text-slate-900 dark:text-white mb-3" x-text="t('header_create')"></h1>
+                    <p class="text-slate-500 dark:text-slate-400 text-lg">AI-powered generation for your Logistics & Supply Chain materials.</p>
+                </div>
                 
-                <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700">
+                <div class="glass p-1 rounded-3xl shadow-2xl">
+                    <div class="bg-white/50 dark:bg-slate-800/50 rounded-[20px] p-6 md:p-10 backdrop-blur-sm">
 
-                    <div class="flex border-b border-gray-200 dark:border-slate-700 mb-6">
-                        <button @click="createMode = 'topic'" :class="createMode === 'topic' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500'" class="pb-3 px-6 font-bold border-b-2 text-sm transition">
-                            <span x-text="t('tab_topic')"></span>
-                        </button>
-                        <button @click="createMode = 'file'" :class="createMode === 'file' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500'" class="pb-3 px-6 font-bold border-b-2 text-sm transition">
-                            <span x-text="t('tab_file')"></span>
-                        </button>
-                    </div>
-                    
-                    <div x-show="createMode === 'topic'">
-                        <div class="mb-6">
-                            <label class="block text-sm font-bold mb-2" x-text="t('label_topic')"></label>
-                            <input x-model="topicInput" type="text" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition" :placeholder="t('topic_placeholder')">
+                        <div class="flex p-1 bg-slate-100 dark:bg-slate-900/50 rounded-xl mb-8 relative">
+                            <button @click="createMode = 'topic'" class="flex-1 py-3 rounded-lg text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2"
+                                :class="createMode === 'topic' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
+                                <i class="fa-solid fa-lightbulb"></i> <span x-text="t('tab_topic')"></span>
+                            </button>
+                            <button @click="createMode = 'file'" class="flex-1 py-3 rounded-lg text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2"
+                                :class="createMode === 'file' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
+                                <i class="fa-solid fa-file-text"></i> <span x-text="t('tab_file')"></span>
+                            </button>
                         </div>
-                    </div>
-
-                    <div x-show="createMode === 'file'">
-                        <div class="mb-6">
-                            <label class="block text-sm font-bold mb-2" x-text="t('label_file')"></label>
-                            
-                            <div x-show="!fileName" class="mb-4 p-4 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-xl text-center hover:bg-gray-50 dark:hover:bg-slate-700/50 transition cursor-pointer relative">
-                                <input type="file" @change="handleFileUpload" accept=".txt,.md,.pdf,.doc,.docx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                                <div class="flex flex-col items-center">
-                                    <i class="fa-solid fa-cloud-arrow-up h-8 w-8 text-gray-400 mb-2"></i>
-                                    <span class="text-sm text-indigo-600 font-bold">Upload a file (PDF, Doc, Txt)</span>
-                                    <span class="text-xs text-gray-400 mt-1">or drag and drop</span>
+                        
+                        <div class="space-y-6">
+                            <div x-show="createMode === 'topic'" x-transition:enter="transition ease-out duration-200 enter-start-opacity-0">
+                                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2" x-text="t('label_topic')"></label>
+                                <div class="relative group">
+                                    <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl blur opacity-0 group-hover:opacity-30 transition duration-500"></div>
+                                    <input x-model="topicInput" type="text" class="relative w-full bg-white dark:bg-slate-900 border-0 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl p-4 pl-12 focus:ring-2 focus:ring-indigo-500 outline-none transition dark:text-white shadow-sm" :placeholder="t('topic_placeholder')">
+                                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
                                 </div>
                             </div>
 
-                            <div x-show="fileName" class="mb-4 p-4 bg-indigo-50 dark:bg-slate-700/50 border border-indigo-100 dark:border-slate-600 rounded-xl flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <i class="fa-solid fa-file-lines text-indigo-600 text-xl"></i>
-                                    <div>
-                                        <p class="text-sm font-bold text-gray-800 dark:text-white" x-text="fileName"></p>
-                                        <p class="text-xs text-green-600 font-medium">Ready to extract</p>
+                            <div x-show="createMode === 'file'" x-transition:enter="transition ease-out duration-200 enter-start-opacity-0">
+                                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2" x-text="t('label_file')"></label>
+                                
+                                <div x-show="!fileName" class="border-2 border-dashed border-indigo-200 dark:border-slate-600 rounded-xl p-8 text-center hover:bg-indigo-50 dark:hover:bg-slate-700/30 transition cursor-pointer relative group">
+                                    <input type="file" @change="handleFileUpload" accept=".txt,.md,.pdf,.doc,.docx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                    <div class="group-hover:scale-105 transition duration-300">
+                                        <div class="w-16 h-16 bg-indigo-100 dark:bg-slate-700 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                                            <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+                                        </div>
+                                        <p class="font-bold text-indigo-600 dark:text-indigo-400">Click to upload</p>
+                                        <p class="text-xs text-gray-400 mt-1">Supports TXT, MD (Manual paste for PDF)</p>
                                     </div>
                                 </div>
-                                <button @click="clearFile" class="text-gray-400 hover:text-red-500 transition"><i class="fa-solid fa-xmark"></i></button>
+
+                                <div x-show="fileName" class="flex items-center justify-between bg-indigo-50 dark:bg-slate-800 border border-indigo-100 dark:border-slate-600 p-4 rounded-xl mb-4 animate-pulse">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-white dark:bg-slate-700 rounded-lg flex items-center justify-center text-indigo-600 shadow-sm">
+                                            <i class="fa-solid fa-file-lines"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-bold text-slate-800 dark:text-white truncate max-w-[200px]" x-text="fileName"></p>
+                                            <p class="text-[10px] text-green-600 font-bold uppercase">Ready</p>
+                                        </div>
+                                    </div>
+                                    <button @click="clearFile" class="text-gray-400 hover:text-red-500 transition px-2"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+
+                                <textarea x-model="fileInput" rows="6" class="w-full mt-4 bg-white dark:bg-slate-900 border-0 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition dark:text-white shadow-sm resize-none" :placeholder="t('file_placeholder')"></textarea>
                             </div>
 
-                            <textarea x-model="fileInput" rows="8" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition" :placeholder="t('file_placeholder')"></textarea>
-                        </div>
-                    </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Quantity</label>
+                                    <div class="relative">
+                                        <select x-model.number="cardCount" class="w-full bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl p-4 appearance-none font-bold focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+                                            <option value="4">4 Cards</option>
+                                            <option value="5">5 Cards</option>
+                                            <option value="6">6 Cards</option>
+                                            <option value="8">8 Cards</option>
+                                            <option value="10">10 Cards</option>
+                                        </select>
+                                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                                    </div>
+                                </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                        <div class="col-span-1">
-                            <label class="block text-sm font-bold mb-2">Quantity</label>
-                            <div class="relative">
-                                <select x-model.number="cardCount" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 appearance-none font-bold cursor-pointer focus:ring-2 focus:ring-indigo-500 outline-none">
-                                    <option value="4">4 Cards</option>
-                                    <option value="5">5 Cards</option>
-                                    <option value="6">6 Cards</option>
-                                    <option value="8">8 Cards</option>
-                                    <option value="10">10 Cards (Max)</option>
-                                </select>
-                                <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
-                                    <i class="fa-solid fa-angle-down text-gray-500"></i>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2" x-text="t('label_deck_title')"></label>
+                                    <input x-model="deckTitle" type="text" class="w-full bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition" :placeholder="t('title_placeholder')">
                                 </div>
                             </div>
                         </div>
 
-                        <div class="col-span-1 md:col-span-2">
-                            <label class="block text-sm font-bold mb-2" x-text="t('label_deck_title')"></label>
-                            <input x-model="deckTitle" type="text" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition" :placeholder="t('title_placeholder')">
+                        <div class="mt-8">
+                            <button @click="handleGenerate()" :disabled="loading" class="w-full relative overflow-hidden group bg-slate-900 dark:bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-xl hover:shadow-2xl hover:shadow-indigo-500/20 disabled:opacity-70 disabled:cursor-not-allowed transition-all transform hover:-translate-y-1">
+                                <div class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                                <div class="flex justify-center items-center gap-3 relative z-10">
+                                    <i x-show="!loading" class="fa-solid fa-wand-magic-sparkles"></i>
+                                    <span x-show="loading" class="animate-spin h-5 w-5 border-2 border-white border-opacity-50 rounded-full border-t-transparent"></span>
+                                    <span x-text="loading ? t('btn_loading') : t('btn_generate')"></span>
+                                </div>
+                            </button>
                         </div>
                     </div>
-
-                    <button @click="handleGenerate()" :disabled="loading" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed transition flex justify-center items-center gap-3 transform hover:-translate-y-0.5">
-                        <span x-show="loading" class="animate-spin h-5 w-5 border-2 border-white border-opacity-50 rounded-full border-t-transparent"></span>
-                        <span x-text="loading ? t('btn_loading') : t('btn_generate')"></span>
-                    </button>
                 </div>
             </div>
         </div>
 
-        <div x-show="view === 'deckDetail'" x-cloak>
-            <button @click="view = 'dashboard'" class="text-indigo-600 hover:underline flex items-center mb-6 transition font-bold">
-                <i class="fa-solid fa-arrow-left h-5 w-5 mr-1"></i>
+        <div x-show="view === 'deckDetail'" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-cloak>
+            
+            <button @click="view = 'dashboard'" class="group flex items-center mb-8 text-slate-500 hover:text-indigo-600 transition font-bold w-fit">
+                <div class="w-8 h-8 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center mr-3 group-hover:-translate-x-1 transition">
+                    <i class="fa-solid fa-arrow-left text-sm"></i>
+                </div>
                 <span x-text="t('btn_back')"></span>
             </button>
 
             <template x-if="currentDeck">
                 <div>
-                    <div class="mb-8">
-                        <h1 class="text-3xl font-extrabold mb-2" x-text="currentDeck.title"></h1>
-                        <p class="text-base text-gray-500" x-text="t('label_source') + ': ' + currentDeck.context"></p>
+                    <div class="mb-10 text-center">
+                        <span class="inline-block px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider mb-3">Study Mode</span>
+                        <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-2" x-text="currentDeck.title"></h1>
+                        <div class="h-1 w-20 bg-gradient-to-r from-indigo-500 to-purple-500 mx-auto rounded-full"></div>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 card-container">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 card-container">
                         <template x-for="(card, index) in currentDeck.cards" :key="index">
-                            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 cursor-pointer relative h-72 group perspective-container" 
-                                @click="card.flipped = !card.flipped">
-                                
-                                <div class="card-inner" :class="{ 'rotate-y-180': card.flipped }">
+                            <div class="h-80 w-full cursor-pointer group perspective-container" @click="card.flipped = !card.flipped">
+                                <div class="card-inner relative w-full h-full shadow-2xl rounded-2xl transition-transform duration-700" :class="{ 'rotate-y-180': card.flipped }">
                                     
-                                    <div class="front-content bg-white dark:bg-slate-800 rounded-2xl">
-                                        <p class="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-4" x-text="t('label_front')"></p>
-                                        <p class="text-2xl font-bold text-gray-800 dark:text-white" x-text="card.front"></p>
-                                        <div class="absolute bottom-4 text-gray-400 text-sm opacity-50">Click to flip</div>
+                                    <div class="front-content bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-100 dark:border-slate-700 overflow-hidden">
+                                        <div class="absolute top-0 left-0 w-full h-2 bg-indigo-500"></div>
+                                        <div class="w-12 h-12 bg-indigo-50 dark:bg-slate-700 rounded-full flex items-center justify-center mb-4 text-indigo-600 font-bold shadow-sm text-lg" x-text="index + 1"></div>
+                                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2" x-text="t('label_front')"></p>
+                                        <p class="text-xl font-bold text-slate-800 dark:text-white" x-text="card.front"></p>
+                                        <div class="absolute bottom-0 w-full py-2 bg-gray-50 dark:bg-slate-700/50 text-center text-xs text-gray-400 font-medium">
+                                            Tap to flip <i class="fa-solid fa-rotate ml-1"></i>
+                                        </div>
                                     </div>
                                     
-                                    <div class="back-content bg-indigo-50 dark:bg-slate-700 rounded-2xl border-2 border-indigo-100 dark:border-slate-600">
-                                        <p class="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-4" x-text="t('label_back')"></p>
-                                        <p class="text-xl text-gray-800 dark:text-white leading-relaxed" x-text="card.back"></p>
+                                    <div class="back-content bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-2xl shadow-inner border-2 border-indigo-500">
+                                        <div class="absolute top-4 right-4 text-white/30 text-4xl">
+                                            <i class="fa-solid fa-lightbulb"></i>
+                                        </div>
+                                        <p class="text-xs font-bold text-indigo-200 uppercase tracking-widest mb-4" x-text="t('label_back')"></p>
+                                        <p class="text-lg font-medium leading-relaxed" x-text="card.back"></p>
                                     </div>
+
                                 </div>
                             </div>
                         </template>
@@ -241,26 +351,44 @@
         </div>
     </div>
 
-    <footer class="bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 mt-auto">
+    <footer class="mt-auto glass border-t border-white/20 relative z-10">
         <div class="max-w-7xl mx-auto px-6 py-8">
-            <div class="flex flex-col md:flex-row justify-between items-center md:items-start gap-8 text-sm">
-                <div class="text-center md:text-left">
-                    <h4 class="font-bold text-gray-900 dark:text-white mb-2 text-base">Contact</h4>
-                    <div class="flex flex-col gap-1">
-                        <a href="mailto:thanhmancutimangre08@gmail.com" class="text-gray-500 hover:text-indigo-600 transition">thanhmancutimangre08@gmail.com</a>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                
+                <div class="flex justify-center md:justify-start">
+                    <img src="images/logo_tim_thanhcuti.png" alt="Logo Thanhcuti" class="w-16 h-16 rounded-full shadow-lg object-cover border-4 border-white dark:border-slate-700 hover:scale-105 transition duration-300">
+                </div>
+
+                <div class="text-center">
+                    <p class="text-base text-slate-600 dark:text-slate-400">
+                        Designed by <span class="font-extrabold text-indigo-600 dark:text-indigo-400 text-lg">Thanhcuti</span>
+                    </p>
+                </div>
+
+                <div class="flex justify-center md:justify-end text-sm text-slate-500 dark:text-slate-400">
+                    <div class="flex flex-col text-left gap-3">
+                        <h4 class="font-bold text-slate-900 dark:text-white text-base">Contact:</h4>
+
+                        <div class="flex items-center gap-2">
+                            <div class="w-5 flex justify-center"><i class="fa-solid fa-phone text-indigo-500"></i></div>
+                            <span>0901 579 757 (Vietnam)</span>
+                        </div>
+
+                        <div class="flex items-start gap-2">
+                            <div class="w-5 flex justify-center mt-1"><i class="fa-solid fa-envelope text-indigo-500"></i></div>
+                            <div class="flex flex-col">
+                                <a href="mailto:thanhmancutimangre08@gmail.com" class="hover:text-indigo-600 transition">thanhmancutimangre08@gmail.com</a>
+                                <a href="mailto:tanthanhnguyenquang08@gmail.com" class="hover:text-indigo-600 transition">tanthanhnguyenquang08@gmail.com</a>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                             <div class="w-5 flex justify-center"><i class="fa-brands fa-facebook text-indigo-500"></i></div>
+                             <span class="hover:text-indigo-600 transition cursor-default">Nguyen Quang Tan Thanh</span>
+                        </div>
                     </div>
                 </div>
-                <div class="text-center">
-                    <h4 class="font-bold text-gray-900 dark:text-white mb-2 text-base">Creator</h4>
-                    <span class="text-gray-500 font-medium">Nguyễn Quang Tân Thanh</span>
-                </div>
-                <div class="text-center md:text-right">
-                    <h4 class="font-bold text-gray-900 dark:text-white mb-2 text-base">Phone</h4>
-                    <a href="tel:0901579757" class="text-gray-500 hover:text-indigo-600 font-mono">0901 579 757</a>
-                </div>
-            </div>
-            <div class="border-t border-gray-100 dark:border-slate-700 mt-8 pt-8 text-center">
-                <p class="text-indigo-600 font-bold text-xs uppercase tracking-widest">Made for RMIT Scholarship Project</p>
+
             </div>
         </div>
     </footer>
@@ -268,83 +396,73 @@
     <script>
         function app() {
             return {
-                // Config & State
                 lang: localStorage.getItem('istu_lang') || 'vi',
                 isDarkMode: localStorage.getItem('istu_theme') === 'dark',
                 view: 'dashboard',
                 loading: false,
                 decks: JSON.parse(localStorage.getItem('istu_decks') || '[]'),
                 
-                // Form Data
                 topicInput: '',
                 fileInput: '',
-                fileName: '', // Tracks the uploaded filename
+                fileName: '',
                 deckTitle: '',
                 cardCount: 5,
                 createMode: 'topic',
                 currentDeck: null,
                 
-                // Endpoints
                 PROXY_API_URL: 'https://istu-api-proxy-c4r83q6nf-thanhcutis-projects.vercel.app/api/generate',
 
                 translations: {
                     en: {
-                        btn_new: 'Create New Deck',
+                        btn_new: 'New Deck',
                         header_dashboard: 'My Library',
-                        header_create: 'Generate Flashcards',
-                        tab_topic: 'Topic / Concept',
-                        tab_file: 'Document / Text',
-                        label_topic: 'Enter a topic',
-                        topic_placeholder: 'E.g., Photosynthesis, Supply Chain Management...',
-                        label_file: 'Paste text or upload file',
-                        file_placeholder: 'Paste content from your notes, PDFs, or docs here...',
-                        label_deck_title: 'Deck Title (Optional)',
-                        title_placeholder: 'Auto-generated if left blank',
-                        btn_generate: 'Generate with AI',
-                        btn_loading: 'Processing...',
+                        header_create: 'Generator',
+                        tab_topic: 'Topic',
+                        tab_file: 'Document',
+                        label_topic: 'What do you want to learn?',
+                        topic_placeholder: 'e.g., Supply Chain Logistics, Inventory Management...',
+                        label_file: 'Source Material',
+                        file_placeholder: 'Paste content here...',
+                        label_deck_title: 'Deck Title',
+                        title_placeholder: 'Auto-generated...',
+                        btn_generate: 'Generate Cards',
+                        btn_loading: 'Thinking...',
                         btn_back: 'Back to Library',
-                        label_cards: 'cards',
-                        label_source: 'Source',
                         label_front: 'Question',
                         label_back: 'Answer',
-                        empty_title: 'No Flashcards Yet',
-                        empty_subtitle: 'Start your learning journey by creating your first deck.',
-                        error_context: 'Please provide a topic or text content.',
-                        error_api: 'Generation Failed',
+                        empty_title: 'Ready to learn?',
+                        empty_subtitle: 'Create your first AI-powered flashcard deck now.',
+                        error_context: 'Please enter a topic or text.',
+                        error_api: 'Error',
                         title: 'ISTU - AI Flashcards'
                     },
                     vi: {
-                        btn_new: 'Tạo Bộ Thẻ Mới',
-                        header_dashboard: 'Thư Viện Của Tôi',
-                        header_create: 'Tạo Thẻ Ghi Nhớ AI',
-                        tab_topic: 'Chủ Đề / Khái Niệm',
-                        tab_file: 'Tài Liệu / Văn Bản',
-                        label_topic: 'Nhập chủ đề',
-                        topic_placeholder: 'Ví dụ: Quang hợp, Quản trị chuỗi cung ứng...',
-                        label_file: 'Dán văn bản hoặc tải file',
-                        file_placeholder: 'Dán nội dung từ ghi chú, PDF, hoặc tài liệu vào đây...',
-                        label_deck_title: 'Tiêu đề bộ thẻ (Tùy chọn)',
-                        title_placeholder: 'Tự động tạo nếu để trống',
+                        btn_new: 'Tạo Bộ Thẻ',
+                        header_dashboard: 'Thư Viện',
+                        header_create: 'Tạo Thẻ AI',
+                        tab_topic: 'Chủ Đề',
+                        tab_file: 'Tài Liệu',
+                        label_topic: 'Bạn muốn học về gì?',
+                        topic_placeholder: 'VD: Chuỗi cung ứng, Logistics ngược...',
+                        label_file: 'Nội dung nguồn',
+                        file_placeholder: 'Dán nội dung vào đây...',
+                        label_deck_title: 'Tiêu đề',
+                        title_placeholder: 'Tự động tạo...',
                         btn_generate: 'Tạo Thẻ Ngay',
-                        btn_loading: 'Đang xử lý...',
+                        btn_loading: 'Đang suy nghĩ...',
                         btn_back: 'Quay lại',
-                        label_cards: 'thẻ',
-                        label_source: 'Nguồn',
                         label_front: 'Câu hỏi',
-                        label_back: 'Trả lời',
-                        empty_title: 'Chưa có bộ thẻ nào',
-                        empty_subtitle: 'Hãy bắt đầu hành trình học tập bằng cách tạo bộ thẻ đầu tiên.',
-                        error_context: 'Vui lòng nhập chủ đề hoặc nội dung văn bản.',
-                        error_api: 'Lỗi Tạo Thẻ',
+                        label_back: 'Đáp án',
+                        empty_title: 'Sẵn sàng học tập?',
+                        empty_subtitle: 'Hãy tạo bộ thẻ flashcard đầu tiên của bạn ngay.',
+                        error_context: 'Vui lòng nhập chủ đề hoặc nội dung.',
+                        error_api: 'Lỗi',
                         title: 'ISTU - AI Flashcards'
                     }
                 },
 
-                // --- Methods ---
-
                 initTheme() {
                     document.documentElement.classList.toggle('dark', this.isDarkMode);
-                    this.updateTitle();
                 },
 
                 toggleTheme() {
@@ -356,44 +474,32 @@
                 setLang(lang) {
                     this.lang = lang;
                     localStorage.setItem('istu_lang', lang);
-                    this.updateTitle();
                 },
 
                 t(key) {
                     return this.translations[this.lang][key] || this.translations['en'][key];
                 },
 
-                updateTitle() {
-                    document.title = this.t('title');
-                },
-
                 formatDate(timestamp) {
-                    return new Date(timestamp).toLocaleDateString(this.lang === 'vi' ? 'vi-VN' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                    return new Date(timestamp).toLocaleDateString(this.lang === 'vi' ? 'vi-VN' : 'en-US', { month: 'short', day: 'numeric' });
                 },
 
-                // Handle File Upload (Updated for UX)
                 handleFileUpload(event) {
                     const file = event.target.files[0];
                     if (!file) return;
-
-                    this.fileName = file.name; // Display filename
-
+                    this.fileName = file.name;
                     if (file.type === "text/plain" || file.name.endsWith('.md')) {
                         const reader = new FileReader();
-                        reader.onload = (e) => {
-                            this.fileInput = e.target.result;
-                        };
+                        reader.onload = (e) => { this.fileInput = e.target.result; };
                         reader.readAsText(file);
                     } else {
-                        // For PDF/Doc, just holding the name is useful, user manually pastes text currently
-                        alert("For PDF/Docs in this version, please confirm the extracted text or paste it manually below.");
+                        alert("Please paste text manually for PDF/Docs.");
                     }
                 },
 
                 clearFile() {
                     this.fileName = '';
                     this.fileInput = '';
-                    // Reset input value to allow re-selecting same file
                     const input = document.querySelector('input[type="file"]');
                     if(input) input.value = '';
                 },
@@ -402,20 +508,12 @@
                     const context = this.createMode === 'topic' ? this.topicInput : this.fileInput;
                     const isFile = this.createMode === 'file';
 
-                    if (!context.trim()) {
-                        return alert(this.t('error_context'));
-                    }
+                    if (!context.trim()) return alert(this.t('error_context'));
 
                     this.loading = true;
-                    
-                    // Improved title generation logic
                     let displayTitle = this.deckTitle.trim();
                     if (!displayTitle) {
-                         if (isFile && this.fileName) {
-                             displayTitle = this.fileName;
-                         } else {
-                             displayTitle = context.length > 40 ? context.substring(0, 40) + '...' : context;
-                         }
+                         displayTitle = (isFile && this.fileName) ? this.fileName : (context.length > 30 ? context.substring(0, 30) + '...' : context);
                     }
 
                     try {
@@ -431,14 +529,9 @@
                         });
 
                         let data;
-                        try {
-                            data = await response.json(); 
-                        } catch (e) {
-                            const text = await response.text();
-                            throw new Error(text || 'Invalid server response');
-                        }
+                        try { data = await response.json(); } catch (e) { throw new Error('Server Error'); }
                         
-                        if (!response.ok) throw new Error(data.error || `Error ${response.status}`); 
+                        if (!response.ok) throw new Error(data.error || 'Error'); 
                         
                         const newDeck = {
                             id: Date.now(),
@@ -451,7 +544,6 @@
                         this.decks.unshift(newDeck);
                         localStorage.setItem('istu_decks', JSON.stringify(this.decks));
                         
-                        // Reset forms
                         this.topicInput = '';
                         this.fileInput = '';
                         this.fileName = '';
@@ -459,7 +551,6 @@
                         this.openDeck(newDeck);
 
                     } catch (error) {
-                        console.error('Generation Error:', error);
                         alert(`${this.t('error_api')}\n${error.message}`);
                     } finally {
                         this.loading = false;
@@ -472,7 +563,7 @@
                 },
 
                 deleteDeck(id) {
-                    if (confirm('Delete this deck?')) {
+                    if (confirm('Delete?')) {
                         this.decks = this.decks.filter(deck => deck.id !== id);
                         localStorage.setItem('istu_decks', JSON.stringify(this.decks));
                     }
