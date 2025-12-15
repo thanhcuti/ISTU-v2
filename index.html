@@ -18,9 +18,11 @@
             theme: {
                 extend: {
                     fontFamily: { sans: ['"Be Vietnam Pro"', 'sans-serif'] },
+                    colors: {
+                        brand: '#6366f1', // Indigo icon color
+                    },
                     animation: {
                         blob: "blob 7s infinite",
-                        'spin-slow': 'spin 3s linear infinite',
                     },
                     keyframes: {
                         blob: {
@@ -40,7 +42,7 @@
     <style>
         [x-cloak] { display: none !important; }
         
-        /* Glassmorphism Effect */
+        /* Glassmorphism */
         .glass {
             background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(10px);
@@ -52,7 +54,7 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        /* 3D Flip Animation */
+        /* --- STABLE FLIP CSS (FROM INDEX2.HTML) --- */
         .card-container { perspective: 1000px; }
         .card-inner {
             transform-style: preserve-3d;
@@ -75,7 +77,7 @@
         }
         .back-content { transform: rotateY(180deg); }
         
-        /* Scrollbar Styling */
+        /* Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -111,7 +113,7 @@
             </div>
             
             <div class="flex items-center gap-2 md:gap-4">
-                <a href="https://forms.gle/By1K53hjazEzZbik9" target="_blank" class="hidden md:flex text-sm font-medium text-gray-500 hover:text-indigo-600 transition items-center gap-1">
+                <a href="https://docs.google.com/forms/d/e/1FAIpQLSflumP4s3hHMKNvSX7OVoU3UMY-5Em0XOTn6Y28kiGApxjMmw/viewform" target="_blank" class="hidden md:flex text-sm font-medium text-gray-500 hover:text-indigo-600 transition items-center gap-1">
                     <i class="fa-regular fa-comment-dots"></i> Feedback
                 </a>
 
@@ -203,96 +205,70 @@
             
             <div class="max-w-3xl mx-auto">
                 <div class="text-center mb-10">
-                    <h1 class="text-4xl font-extrabold text-slate-900 dark:text-white mb-3" x-text="t('header_create')"></h1>
-                    <p class="text-slate-500 dark:text-slate-400 text-lg">AI-powered generation for your Logistics & Supply Chain materials.</p>
+                    <h1 class="text-4xl font-extrabold text-slate-800 dark:text-white mb-2" x-text="t('header_create')"></h1>
+                    <p class="text-slate-500 dark:text-slate-400">Paste your Logistics & SCM notes. Let AI do the heavy lifting.</p>
                 </div>
                 
-                <div class="glass p-1 rounded-3xl shadow-2xl">
-                    <div class="bg-white/50 dark:bg-slate-800/50 rounded-[20px] p-6 md:p-10 backdrop-blur-sm">
-
-                        <div class="flex p-1 bg-slate-100 dark:bg-slate-900/50 rounded-xl mb-8 relative">
-                            <button @click="createMode = 'topic'" class="flex-1 py-3 rounded-lg text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2"
-                                :class="createMode === 'topic' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
-                                <i class="fa-solid fa-lightbulb"></i> <span x-text="t('tab_topic')"></span>
-                            </button>
-                            <button @click="createMode = 'file'" class="flex-1 py-3 rounded-lg text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2"
-                                :class="createMode === 'file' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
-                                <i class="fa-solid fa-file-text"></i> <span x-text="t('tab_file')"></span>
-                            </button>
-                        </div>
-                        
-                        <div class="space-y-6">
-                            <div x-show="createMode === 'topic'" x-transition:enter="transition ease-out duration-200 enter-start-opacity-0">
-                                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2" x-text="t('label_topic')"></label>
-                                <div class="relative group">
-                                    <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl blur opacity-0 group-hover:opacity-30 transition duration-500"></div>
-                                    <input x-model="topicInput" type="text" class="relative w-full bg-white dark:bg-slate-900 border-0 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl p-4 pl-12 focus:ring-2 focus:ring-indigo-500 outline-none transition dark:text-white shadow-sm" :placeholder="t('topic_placeholder')">
-                                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                                </div>
-                            </div>
-
-                            <div x-show="createMode === 'file'" x-transition:enter="transition ease-out duration-200 enter-start-opacity-0">
-                                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2" x-text="t('label_file')"></label>
-                                
-                                <div x-show="!fileName" class="border-2 border-dashed border-indigo-200 dark:border-slate-600 rounded-xl p-8 text-center hover:bg-indigo-50 dark:hover:bg-slate-700/30 transition cursor-pointer relative group">
-                                    <input type="file" @change="handleFileUpload" accept=".txt,.md,.pdf,.doc,.docx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-                                    <div class="group-hover:scale-105 transition duration-300">
-                                        <div class="w-16 h-16 bg-indigo-100 dark:bg-slate-700 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                                            <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
-                                        </div>
-                                        <p class="font-bold text-indigo-600 dark:text-indigo-400">Click to upload</p>
-                                        <p class="text-xs text-gray-400 mt-1">Supports TXT, MD (Manual paste for PDF)</p>
-                                    </div>
-                                </div>
-
-                                <div x-show="fileName" class="flex items-center justify-between bg-indigo-50 dark:bg-slate-800 border border-indigo-100 dark:border-slate-600 p-4 rounded-xl mb-4 animate-pulse">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 bg-white dark:bg-slate-700 rounded-lg flex items-center justify-center text-indigo-600 shadow-sm">
-                                            <i class="fa-solid fa-file-lines"></i>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-bold text-slate-800 dark:text-white truncate max-w-[200px]" x-text="fileName"></p>
-                                            <p class="text-[10px] text-green-600 font-bold uppercase">Ready</p>
-                                        </div>
-                                    </div>
-                                    <button @click="clearFile" class="text-gray-400 hover:text-red-500 transition px-2"><i class="fa-solid fa-xmark"></i></button>
-                                </div>
-
-                                <textarea x-model="fileInput" rows="6" class="w-full mt-4 bg-white dark:bg-slate-900 border-0 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition dark:text-white shadow-sm resize-none" :placeholder="t('file_placeholder')"></textarea>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div>
-                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Quantity</label>
-                                    <div class="relative">
-                                        <select x-model.number="cardCount" class="w-full bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl p-4 appearance-none font-bold focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
-                                            <option value="4">4 Cards</option>
-                                            <option value="5">5 Cards</option>
-                                            <option value="6">6 Cards</option>
-                                            <option value="8">8 Cards</option>
-                                            <option value="10">10 Cards</option>
-                                        </select>
-                                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
-                                    </div>
-                                </div>
-
-                                <div class="md:col-span-2">
-                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2" x-text="t('label_deck_title')"></label>
-                                    <input x-model="deckTitle" type="text" class="w-full bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition" :placeholder="t('title_placeholder')">
-                                </div>
-                            </div>
+                <div class="glass p-8 md:p-10 rounded-3xl shadow-xl">
+                    <div class="flex p-1 bg-slate-100 dark:bg-slate-700/50 rounded-xl mb-8">
+                        <button @click="createMode = 'topic'" class="flex-1 py-3 rounded-lg text-sm font-bold transition-all" 
+                            :class="createMode === 'topic' ? 'bg-white dark:bg-slate-600 text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'">
+                            <i class="fa-solid fa-lightbulb mr-2"></i> <span x-text="t('tab_topic')"></span>
+                        </button>
+                        <button @click="createMode = 'file'" class="flex-1 py-3 rounded-lg text-sm font-bold transition-all" 
+                            :class="createMode === 'file' ? 'bg-white dark:bg-slate-600 text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'">
+                            <i class="fa-solid fa-file-text mr-2"></i> <span x-text="t('tab_file')"></span>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <div x-show="createMode === 'topic'">
+                            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2" x-text="t('label_topic')"></label>
+                            <input x-model="topicInput" type="text" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition" :placeholder="t('topic_placeholder')">
                         </div>
 
-                        <div class="mt-8">
-                            <button @click="handleGenerate()" :disabled="loading" class="w-full relative overflow-hidden group bg-slate-900 dark:bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-xl hover:shadow-2xl hover:shadow-indigo-500/20 disabled:opacity-70 disabled:cursor-not-allowed transition-all transform hover:-translate-y-1">
-                                <div class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                                <div class="flex justify-center items-center gap-3 relative z-10">
-                                    <i x-show="!loading" class="fa-solid fa-wand-magic-sparkles"></i>
-                                    <span x-show="loading" class="animate-spin h-5 w-5 border-2 border-white border-opacity-50 rounded-full border-t-transparent"></span>
-                                    <span x-text="loading ? t('btn_loading') : t('btn_generate')"></span>
+                        <div x-show="createMode === 'file'">
+                            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2" x-text="t('label_file')"></label>
+                            <div class="mb-4 p-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl text-center hover:bg-slate-50 dark:hover:bg-slate-700/50 transition cursor-pointer relative">
+                                <input type="file" @change="handleFileUpload" accept=".txt,.md,.pdf,.doc,.docx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                                <div class="flex flex-col items-center">
+                                    <i class="fa-solid fa-cloud-arrow-up h-8 w-8 text-slate-400 mb-2"></i>
+                                    <span class="text-sm text-indigo-600 dark:text-indigo-400 font-bold">Upload (PDF, Doc, Txt)</span>
                                 </div>
-                            </button>
+                            </div>
+                            <div x-show="fileName" class="flex justify-between items-center bg-indigo-50 dark:bg-slate-700 p-3 rounded-lg mb-4">
+                                <span class="text-sm font-bold text-indigo-700 dark:text-indigo-300 truncate" x-text="fileName"></span>
+                                <button @click="clearFile" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-times"></i></button>
+                            </div>
+                            <textarea x-model="fileInput" rows="6" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition" :placeholder="t('file_placeholder')"></textarea>
                         </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Quantity</label>
+                                <div class="relative">
+                                    <select x-model.number="cardCount" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl p-4 appearance-none font-bold focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+                                        <option value="4">4 Cards</option>
+                                        <option value="5">5 Cards</option>
+                                        <option value="6">6 Cards</option>
+                                        <option value="8">8 Cards</option>
+                                        <option value="10">10 Cards</option>
+                                    </select>
+                                    <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                                </div>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2" x-text="t('label_deck_title')"></label>
+                                <input x-model="deckTitle" type="text" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition" :placeholder="t('title_placeholder')">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8">
+                        <button @click="handleGenerate()" :disabled="loading" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-indigo-500/30 disabled:opacity-70 disabled:cursor-not-allowed transition transform hover:-translate-y-0.5">
+                            <span x-show="loading" class="animate-spin h-5 w-5 border-2 border-white border-opacity-50 rounded-full border-t-transparent mr-2 inline-block"></span>
+                            <span x-text="loading ? t('btn_loading') : t('btn_generate')"></span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -304,42 +280,33 @@
              x-transition:enter-end="opacity-100 scale-100"
              x-cloak>
             
-            <button @click="view = 'dashboard'" class="group flex items-center mb-8 text-slate-500 hover:text-indigo-600 transition font-bold w-fit">
-                <div class="w-8 h-8 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center mr-3 group-hover:-translate-x-1 transition">
-                    <i class="fa-solid fa-arrow-left text-sm"></i>
-                </div>
-                <span x-text="t('btn_back')"></span>
+            <button @click="view = 'dashboard'" class="text-indigo-600 dark:text-indigo-400 hover:underline flex items-center mb-6 transition font-bold">
+                <i class="fa-solid fa-arrow-left mr-2"></i> <span x-text="t('btn_back')"></span>
             </button>
 
             <template x-if="currentDeck">
                 <div>
-                    <div class="mb-10 text-center">
-                        <span class="inline-block px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider mb-3">Study Mode</span>
-                        <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-2" x-text="currentDeck.title"></h1>
-                        <div class="h-1 w-20 bg-gradient-to-r from-indigo-500 to-purple-500 mx-auto rounded-full"></div>
+                    <div class="mb-8 text-center">
+                        <span class="inline-block px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider mb-2">Study Mode</span>
+                        <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white" x-text="currentDeck.title"></h1>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 card-container">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 card-container">
                         <template x-for="(card, index) in currentDeck.cards" :key="index">
                             <div class="h-80 w-full cursor-pointer group perspective-container" @click="card.flipped = !card.flipped">
-                                <div class="card-inner relative w-full h-full shadow-2xl rounded-2xl transition-transform duration-700" :class="{ 'rotate-y-180': card.flipped }">
+                                <div class="card-inner bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-700" :class="{ 'rotate-y-180': card.flipped }">
                                     
-                                    <div class="front-content bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-100 dark:border-slate-700 overflow-hidden">
-                                        <div class="absolute top-0 left-0 w-full h-2 bg-indigo-500"></div>
-                                        <div class="w-12 h-12 bg-indigo-50 dark:bg-slate-700 rounded-full flex items-center justify-center mb-4 text-indigo-600 font-bold shadow-sm text-lg" x-text="index + 1"></div>
-                                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2" x-text="t('label_front')"></p>
+                                    <div class="front-content">
+                                        <div class="w-10 h-10 bg-indigo-50 dark:bg-slate-700 rounded-full flex items-center justify-center mb-4 text-indigo-600 font-bold" x-text="index + 1"></div>
+                                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2" x-text="t('label_front')"></p>
                                         <p class="text-xl font-bold text-slate-800 dark:text-white" x-text="card.front"></p>
-                                        <div class="absolute bottom-0 w-full py-2 bg-gray-50 dark:bg-slate-700/50 text-center text-xs text-gray-400 font-medium">
-                                            Tap to flip <i class="fa-solid fa-rotate ml-1"></i>
-                                        </div>
+                                        <div class="absolute bottom-4 text-slate-400 text-xs">Tap to flip</div>
                                     </div>
                                     
-                                    <div class="back-content bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-2xl shadow-inner border-2 border-indigo-500">
-                                        <div class="absolute top-4 right-4 text-white/30 text-4xl">
-                                            <i class="fa-solid fa-lightbulb"></i>
-                                        </div>
-                                        <p class="text-xs font-bold text-indigo-200 uppercase tracking-widest mb-4" x-text="t('label_back')"></p>
-                                        <p class="text-lg font-medium leading-relaxed" x-text="card.back"></p>
+                                    <div class="back-content bg-indigo-600 text-white rounded-2xl">
+                                        <div class="absolute top-4 right-4 text-white/30"><i class="fa-solid fa-lightbulb"></i></div>
+                                        <p class="text-xs font-bold text-indigo-200 uppercase tracking-wider mb-2" x-text="t('label_back')"></p>
+                                        <p class="text-lg leading-relaxed" x-text="card.back"></p>
                                     </div>
 
                                 </div>
@@ -351,45 +318,41 @@
         </div>
     </div>
 
-    <footer class="mt-auto glass border-t border-white/20 relative z-10">
-        <div class="max-w-7xl mx-auto px-6 py-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+    <footer class="bg-[#0f172a] text-white py-8 border-t border-slate-800 mt-auto">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center md:items-end gap-8">
+            
+            <div class="flex flex-col gap-3 text-sm text-slate-300 w-full md:w-auto">
+                <h3 class="font-bold text-white uppercase tracking-wider mb-1">CONTACT INFO</h3>
                 
-                <div class="flex justify-center md:justify-start">
-                    <img src="images/logo_tim_thanhcuti.png" alt="Logo Thanhcuti" class="w-16 h-16 rounded-full shadow-lg object-cover border-4 border-white dark:border-slate-700 hover:scale-105 transition duration-300">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-phone text-brand w-5"></i>
+                    <span>0901 579 757 (Vietnam)</span>
                 </div>
-
-                <div class="text-center">
-                    <p class="text-base text-slate-600 dark:text-slate-400">
-                        Designed by <span class="font-extrabold text-indigo-600 dark:text-indigo-400 text-lg">Thanhcuti</span>
-                    </p>
-                </div>
-
-                <div class="flex justify-center md:justify-end text-sm text-slate-500 dark:text-slate-400">
-                    <div class="flex flex-col text-left gap-3">
-                        <h4 class="font-bold text-slate-900 dark:text-white text-base">Contact:</h4>
-
-                        <div class="flex items-center gap-2">
-                            <div class="w-5 flex justify-center"><i class="fa-solid fa-phone text-indigo-500"></i></div>
-                            <span>0901 579 757 (Vietnam)</span>
-                        </div>
-
-                        <div class="flex items-start gap-2">
-                            <div class="w-5 flex justify-center mt-1"><i class="fa-solid fa-envelope text-indigo-500"></i></div>
-                            <div class="flex flex-col">
-                                <a href="mailto:thanhmancutimangre08@gmail.com" class="hover:text-indigo-600 transition">thanhmancutimangre08@gmail.com</a>
-                                <a href="mailto:tanthanhnguyenquang08@gmail.com" class="hover:text-indigo-600 transition">tanthanhnguyenquang08@gmail.com</a>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-2">
-                             <div class="w-5 flex justify-center"><i class="fa-brands fa-facebook text-indigo-500"></i></div>
-                             <span class="hover:text-indigo-600 transition cursor-default">Nguyen Quang Tan Thanh</span>
-                        </div>
+                
+                <div class="flex items-start gap-3">
+                    <i class="fa-solid fa-envelope text-brand w-5 mt-1"></i>
+                    <div class="flex flex-col">
+                        <a href="mailto:thanhmancutimangre08@gmail.com" class="hover:text-white transition">thanhmancutimangre08@gmail.com</a>
+                        <a href="mailto:tanthanhnguyenquang08@gmail.com" class="hover:text-white transition">tanthanhnguyenquang08@gmail.com</a>
                     </div>
                 </div>
 
+                <div class="flex items-center gap-3">
+                    <i class="fa-brands fa-facebook text-brand w-5"></i>
+                    <span>Nguyen Quang Tan Thanh</span>
+                </div>
             </div>
+
+            <div class="flex flex-col items-center md:items-end gap-2 w-full md:w-auto">
+                <div class="flex items-center gap-3">
+                    <img src="images/logo_tim_thanhcuti.png" alt="Logo" class="w-10 h-10 rounded-full border border-slate-600">
+                    <span class="text-3xl font-bold text-[#818cf8]">ISTU</span>
+                </div>
+                <div class="text-sm text-slate-400">
+                    Designed by <span class="font-bold text-white">Thanhcuti</span>
+                </div>
+            </div>
+
         </div>
     </footer>
 
@@ -419,22 +382,21 @@
                         header_create: 'Generator',
                         tab_topic: 'Topic',
                         tab_file: 'Document',
-                        label_topic: 'What do you want to learn?',
-                        topic_placeholder: 'e.g., Supply Chain Logistics, Inventory Management...',
-                        label_file: 'Source Material',
-                        file_placeholder: 'Paste content here...',
-                        label_deck_title: 'Deck Title',
+                        label_topic: 'Topic',
+                        topic_placeholder: 'E.g., Supply Chain...',
+                        label_file: 'File/Text',
+                        file_placeholder: 'Paste content...',
+                        label_deck_title: 'Title',
                         title_placeholder: 'Auto-generated...',
-                        btn_generate: 'Generate Cards',
-                        btn_loading: 'Thinking...',
-                        btn_back: 'Back to Library',
+                        btn_generate: 'Generate',
+                        btn_loading: 'Processing...',
+                        btn_back: 'Back',
                         label_front: 'Question',
                         label_back: 'Answer',
-                        empty_title: 'Ready to learn?',
-                        empty_subtitle: 'Create your first AI-powered flashcard deck now.',
-                        error_context: 'Please enter a topic or text.',
-                        error_api: 'Error',
-                        title: 'ISTU - AI Flashcards'
+                        empty_title: 'No Flashcards',
+                        empty_subtitle: 'Create your first deck.',
+                        error_context: 'Please enter content.',
+                        error_api: 'Error'
                     },
                     vi: {
                         btn_new: 'Tạo Bộ Thẻ',
@@ -442,33 +404,32 @@
                         header_create: 'Tạo Thẻ AI',
                         tab_topic: 'Chủ Đề',
                         tab_file: 'Tài Liệu',
-                        label_topic: 'Bạn muốn học về gì?',
-                        topic_placeholder: 'VD: Chuỗi cung ứng, Logistics ngược...',
-                        label_file: 'Nội dung nguồn',
-                        file_placeholder: 'Dán nội dung vào đây...',
+                        label_topic: 'Chủ đề',
+                        topic_placeholder: 'VD: Chuỗi cung ứng...',
+                        label_file: 'Nội dung',
+                        file_placeholder: 'Dán nội dung...',
                         label_deck_title: 'Tiêu đề',
                         title_placeholder: 'Tự động tạo...',
-                        btn_generate: 'Tạo Thẻ Ngay',
-                        btn_loading: 'Đang suy nghĩ...',
+                        btn_generate: 'Tạo Ngay',
+                        btn_loading: 'Đang xử lý...',
                         btn_back: 'Quay lại',
                         label_front: 'Câu hỏi',
                         label_back: 'Đáp án',
-                        empty_title: 'Sẵn sàng học tập?',
-                        empty_subtitle: 'Hãy tạo bộ thẻ flashcard đầu tiên của bạn ngay.',
-                        error_context: 'Vui lòng nhập chủ đề hoặc nội dung.',
-                        error_api: 'Lỗi',
-                        title: 'ISTU - AI Flashcards'
+                        empty_title: 'Chưa có thẻ',
+                        empty_subtitle: 'Tạo bộ thẻ đầu tiên ngay.',
+                        error_context: 'Vui lòng nhập nội dung.',
+                        error_api: 'Lỗi'
                     }
                 },
 
                 initTheme() {
-                    document.documentElement.classList.toggle('dark', this.isDarkMode);
+                    this.isDarkMode ? document.documentElement.classList.add('dark') : document.documentElement.classList.remove('dark');
                 },
 
                 toggleTheme() {
                     this.isDarkMode = !this.isDarkMode;
                     localStorage.setItem('istu_theme', this.isDarkMode ? 'dark' : 'light');
-                    document.documentElement.classList.toggle('dark', this.isDarkMode);
+                    this.initTheme();
                 },
 
                 setLang(lang) {
@@ -476,95 +437,59 @@
                     localStorage.setItem('istu_lang', lang);
                 },
 
-                t(key) {
-                    return this.translations[this.lang][key] || this.translations['en'][key];
-                },
+                t(key) { return this.translations[this.lang][key] || this.translations['en'][key]; },
 
-                formatDate(timestamp) {
-                    return new Date(timestamp).toLocaleDateString(this.lang === 'vi' ? 'vi-VN' : 'en-US', { month: 'short', day: 'numeric' });
-                },
+                formatDate(ts) { return new Date(ts).toLocaleDateString(this.lang === 'vi' ? 'vi-VN' : 'en-US'); },
 
-                handleFileUpload(event) {
-                    const file = event.target.files[0];
+                handleFileUpload(e) {
+                    const file = e.target.files[0];
                     if (!file) return;
                     this.fileName = file.name;
                     if (file.type === "text/plain" || file.name.endsWith('.md')) {
                         const reader = new FileReader();
                         reader.onload = (e) => { this.fileInput = e.target.result; };
                         reader.readAsText(file);
-                    } else {
-                        alert("Please paste text manually for PDF/Docs.");
-                    }
+                    } else { alert("Paste text for PDF/Docs."); }
                 },
 
-                clearFile() {
-                    this.fileName = '';
-                    this.fileInput = '';
-                    const input = document.querySelector('input[type="file"]');
-                    if(input) input.value = '';
-                },
+                clearFile() { this.fileName = ''; this.fileInput = ''; document.querySelector('input[type="file"]').value = ''; },
 
                 async handleGenerate() {
                     const context = this.createMode === 'topic' ? this.topicInput : this.fileInput;
-                    const isFile = this.createMode === 'file';
-
                     if (!context.trim()) return alert(this.t('error_context'));
 
                     this.loading = true;
-                    let displayTitle = this.deckTitle.trim();
-                    if (!displayTitle) {
-                         displayTitle = (isFile && this.fileName) ? this.fileName : (context.length > 30 ? context.substring(0, 30) + '...' : context);
-                    }
+                    const displayTitle = this.deckTitle.trim() || (this.createMode === 'file' && this.fileName ? this.fileName : context.substring(0, 30));
 
                     try {
-                        const response = await fetch(this.PROXY_API_URL, {
+                        const res = await fetch(this.PROXY_API_URL, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ 
-                                context: context, 
-                                isFile: isFile, 
-                                lang: this.lang,
-                                cardCount: this.cardCount
-                            }),
+                            body: JSON.stringify({ context, isFile: this.createMode === 'file', lang: this.lang, cardCount: this.cardCount }),
                         });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || 'Error');
 
-                        let data;
-                        try { data = await response.json(); } catch (e) { throw new Error('Server Error'); }
-                        
-                        if (!response.ok) throw new Error(data.error || 'Error'); 
-                        
-                        const newDeck = {
+                        this.decks.unshift({
                             id: Date.now(),
                             title: displayTitle,
-                            context: isFile ? 'File/Text' : 'Topic',
+                            context: this.createMode === 'file' ? 'File' : 'Topic',
                             createdAt: Date.now(),
-                            cards: data.map(card => ({ ...card, flipped: false }))
-                        };
-
-                        this.decks.unshift(newDeck);
+                            cards: data.map(c => ({ ...c, flipped: false }))
+                        });
                         localStorage.setItem('istu_decks', JSON.stringify(this.decks));
                         
-                        this.topicInput = '';
-                        this.fileInput = '';
-                        this.fileName = '';
-                        this.deckTitle = '';
-                        this.openDeck(newDeck);
+                        this.topicInput = ''; this.fileInput = ''; this.fileName = ''; this.deckTitle = '';
+                        this.openDeck(this.decks[0]);
 
-                    } catch (error) {
-                        alert(`${this.t('error_api')}\n${error.message}`);
-                    } finally {
-                        this.loading = false;
-                    }
+                    } catch (e) { alert(e.message); } finally { this.loading = false; }
                 },
 
-                openDeck(deck) {
-                    this.currentDeck = deck;
-                    this.view = 'deckDetail';
-                },
+                openDeck(d) { this.currentDeck = d; this.view = 'deckDetail'; window.scrollTo({ top: 0, behavior: 'smooth' }); },
 
                 deleteDeck(id) {
                     if (confirm('Delete?')) {
-                        this.decks = this.decks.filter(deck => deck.id !== id);
+                        this.decks = this.decks.filter(d => d.id !== id);
                         localStorage.setItem('istu_decks', JSON.stringify(this.decks));
                     }
                 }
